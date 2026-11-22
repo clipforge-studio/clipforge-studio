@@ -10,11 +10,11 @@ This branch begins the download-first workflow and early editing tools. It is a 
 
 - Queue supported video URLs and download with `yt-dlp`.
 - Keep downloaded videos in a selectable output folder.
-- Select Landscape, Vertical 9:16, or Both for processing.
+- Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Choose when to split after download.
 - Automatic split using a user-entered segment duration.
-- Manual time-range export using start and end timestamps.
-- Basic edit export with an optional SRT subtitle file, text overlay, and a small set of video filter presets.
+- Manual time-range export using start and end timestamps.\n- A basic visual timeline where clicking adds manual cut points; undo the last cut and export segments.
+- Edit export with an optional SRT subtitle file (burned into the video), text overlay with position/size controls, and video filter presets (Black & White, Warm, Vintage, Sharpen).\n- H.264/AAC re-encoding for the generated MP4 clips, avoiding the previous stream-copy/AV1 playback issue in exported clips.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
 ### Not implemented yet
@@ -31,7 +31,7 @@ These are planned features; do not treat them as available until implemented and
 ## Requirements
 
 - Windows 10 or later
-- Python 3 with Tkinter
+- Python 3 with Tkinter\n- `ffprobe.exe` (for reading the timeline duration)
 - `yt-dlp.exe`
 - `ffmpeg.exe` with `libx264` and subtitle filter support
 
