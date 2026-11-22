@@ -297,8 +297,10 @@ class App:
                     "crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease"
                     "[front];[blur][front]overlay=(W-w)/2:(H-h)/2")
             filters.append(base)
-        else:
+        elif fmt == "Landscape":
             filters.append("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
+        else:
+            filters.append("setsar=1")
         if effect == "Black & White":
             filters.append("hue=s=0")
         elif effect == "Warm":
@@ -316,7 +318,7 @@ class App:
                            ":borderw=3:bordercolor=black:x=(w-text_w)/2:y=" + y)
         filters.append("setsar=1")
         if fmt == "Vertical 9:16":
-            return filters[0] + ";" + filters[1].replace(";", ",") + "[vout]" if len(filters) == 1 else filters[0] + "," + ",".join(filters[1:]) + "[vout]"
+            return filters[0] + "," + ",".join(filters[1:]) + "[vout]"
         return ",".join(filters)
 
         def encode_segments(self, source, folder, duration, fmt):
