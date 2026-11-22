@@ -10,12 +10,12 @@ This branch introduces a download-first workflow and early editing tools. It is 
 
 - Queue supported video URLs and download with `yt-dlp`.
 - Keep downloaded videos in a selectable output folder.
-- Select Landscape, Vertical 9:16, or Both for processing.
+- Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Choose when to split after download.
 - Automatic split using a user-entered segment duration.
 - Manual time-range export using start and end timestamps.
 - Timeline ruler: click to position a playhead, add/remove multiple cut points, and export the resulting clips.
-- Basic edit export with an optional SRT subtitle file, text overlay, and a small set of video filter presets.
+- Subtitle & Effects Editor: import an existing SRT file and burn it into the video, add a title/text overlay with size and position controls, and apply Black & White, Warm, Vintage, or Sharpen presets.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
 ### Known limitations
@@ -41,7 +41,7 @@ The app searches beside the Python script, in an `ffmpeg\bin` subfolder, in the 
 
 1. Install Python 3 if it is not already installed.
 2. Download `yt-dlp.exe` from the official yt-dlp project releases.
-3. Download a trusted FFmpeg Windows build containing FFmpeg and FFprobe.
+3. Download a trusted FFmpeg Windows build containing FFmpeg, FFprobe, and `libx264` support.
 4. Put `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside `clipforge_studio.py` (or add them to `PATH`).
 5. Double-click `START_APP.bat`.
 6. Add a permitted video URL and click **Download**.
