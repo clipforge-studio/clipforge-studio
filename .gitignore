@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+_clipforge_work/
+_ClipForge_Work/
+dist/
+build/
+*.spec
