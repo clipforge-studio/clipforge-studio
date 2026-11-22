@@ -75,7 +75,7 @@ class App:
         bar = tk.Frame(self.root, bg="#111827")
         bar.pack(fill="x", padx=22, pady=9)
         tk.Label(bar, text="OUTPUT FORMAT", bg="#111827", fg="#cbd5e1").pack(side="left")
-        self.format_box = ttk.Combobox(bar, textvariable=self.format, values=["Landscape", "Vertical 9:16", "Both"], state="readonly", width=18)
+        self.format_box = ttk.Combobox(bar, textvariable=self.format, values=["Landscape", "Vertical 9:16", "Original", "Both"], state="readonly", width=18)
         self.format_box.pack(side="left", padx=9)
         self.button(bar, "Change Output Folder", self.change, "#475569").pack(side="right")
         self.folder_label = tk.Label(self.root, text="Output: " + self.out, bg="#111827", fg="#94a3b8", anchor="w")
@@ -94,7 +94,7 @@ class App:
         actions = tk.Frame(self.root, bg="#111827")
         actions.pack(fill="x", padx=22, pady=10)
         self.button(actions, "Split Selected", self.split_dialog, "#7c3aed").pack(side="left")
-        self.button(actions, "Open Full Editor", self.editor_dialog, "#0f766e").pack(side="left", padx=7)
+        self.button(actions, "Subtitle & Effects Editor", self.editor_dialog, "#0f766e").pack(side="left", padx=7)
         self.button(actions, "Timeline / Multi-Cut", self.timeline_dialog, "#9333ea").pack(side="left", padx=7)
         self.button(actions, "Preview Video", self.preview, "#475569").pack(side="left")
         self.pb = ttk.Progressbar(self.root, maximum=100)
@@ -324,8 +324,8 @@ class App:
     def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
         vf = self.video_filter(fmt)
-        cmd = [self.ffmpeg, "-y", "-i", source, "-vf" if fmt == "Landscape" else "-filter_complex", vf,
-               "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+        cmd = [self.ffmpeg, "-y", "-i", source, "-filter_complex" if fmt == "Vertical 9:16" else "-vf", vf,
+               "-map", "[vout]" if fmt == "Vertical 9:16" else "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "segment",
                "-segment_time", str(duration), "-reset_timestamps", "1", "-segment_format", "mp4", output]
         code = self.run_command(cmd)
@@ -469,15 +469,16 @@ class App:
             os.makedirs(dest, exist_ok=True)
             formats = ["Landscape", "Vertical 9:16"] if output_format == "Both" else [output_format]
             for fmt in formats:
-                folder = os.path.join(dest, "Landscape" if fmt == "Landscape" else "Vertical_9x16")
+                folder_name = {"Landscape": "Landscape", "Vertical 9:16": "Vertical_9x16", "Original": "Original"}[fmt]
+                folder = os.path.join(dest, folder_name)
                 os.makedirs(folder, exist_ok=True)
                 for index, (start, end) in enumerate(ranges, 1):
                     output = os.path.join(folder, f"Clip_{index:03d}.mp4")
                     self.events.put(("status", f"Exporting {fmt} clip {index}/{len(ranges)}"))
                     vf = self.video_filter(fmt)
                     cmd = [self.ffmpeg, "-y", "-ss", str(start), "-i", source, "-t", str(end-start),
-                           "-vf" if fmt == "Landscape" else "-filter_complex", vf,
-                           "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?",
+                           "-filter_complex" if fmt == "Vertical 9:16" else "-vf", vf,
+                           "-map", "[vout]" if fmt == "Vertical 9:16" else "0:v:0", "-map", "0:a?",
                            "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                            "-movflags", "+faststart", output]
@@ -612,7 +613,7 @@ class App:
         total = max(0, int(seconds))
         return f"{total//3600:02d}:{(total%3600)//60:02d}:{total%60:02d}"
 
-        def editor_worker(self, source, cuts, subtitle, effect, text, size, position):
+    def editor_worker(self, source, cuts, subtitle, effect, text, size, position):
         try:
             stem = clean(Path(source).stem)
             folder = os.path.join(self.out, stem + "_Edited")
