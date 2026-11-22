@@ -273,7 +273,8 @@ class App:
             os.makedirs(dest, exist_ok=True)
             formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
             for fmt in formats:
-                folder = os.path.join(dest, "Landscape" if fmt == "Landscape" else "Vertical_9x16")
+                folder_name = {"Landscape": "Landscape", "Vertical 9:16": "Vertical_9x16", "Original": "Original"}[fmt]
+                folder = os.path.join(dest, folder_name)
                 os.makedirs(folder, exist_ok=True)
                 if mode == "manual":
                     output = os.path.join(folder, stem + "_Manual.mp4")
