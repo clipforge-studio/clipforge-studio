@@ -321,7 +321,7 @@ class App:
             return filters[0] + "," + ",".join(filters[1:]) + "[vout]"
         return ",".join(filters)
 
-        def encode_segments(self, source, folder, duration, fmt):
+    def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
         vf = self.video_filter(fmt)
         cmd = [self.ffmpeg, "-y", "-i", source, "-vf" if fmt == "Landscape" else "-filter_complex", vf,
@@ -643,7 +643,7 @@ class App:
         finally:
             self.events.put(("finished",))
 
-        def preview(self):
+    def preview(self):
         source = self.selected()
         if source:
             try:
