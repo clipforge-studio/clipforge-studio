@@ -1,48 +1,60 @@
 # ClipForge Studio
 
-A small Windows desktop utility for processing videos you own or have permission to download.
+A Windows desktop video utility for content you own or have permission to download and process.
 
-## Current features
+## Version 0.2 development branch
 
-- Queue one or more supported video URLs through `yt-dlp`.
-- Download to a local working folder.
-- Split downloaded media into approximately five-minute segments.
-- Export landscape segments while retaining the source aspect ratio.
-- Export vertical 9:16 segments with a blurred background and the full source frame fitted in front.
-- Choose an output folder.
+This branch begins the download-first workflow and early editing tools. It is a development preview, not a finished CapCut replacement.
 
-The final segment can be shorter than five minutes. Landscape splitting uses stream copy and therefore cuts at suitable keyframes; exact cut points can vary. Vertical output is re-encoded and takes longer. Vertical framing does not automatically track faces or other subjects.
+### Available in this development build
+
+- Queue supported video URLs and download with `yt-dlp`.
+- Keep downloaded videos in a selectable output folder.
+- Select Landscape, Vertical 9:16, or Both for processing.
+- Choose when to split after download.
+- Automatic split using a user-entered segment duration.
+- Manual time-range export using start and end timestamps.
+- Basic edit export with an optional SRT subtitle file, text overlay, and a small set of video filter presets.
+- MP4 export using H.264 video and AAC audio for broad player compatibility.
+
+### Not implemented yet
+
+- A visual, draggable multi-track timeline with playhead-based cut points.
+- Multiple manual cut points and clip rearrangement/joining.
+- Subtitle authoring and per-caption timing inside the app.
+- Live preview of text, subtitles, and effects before export.
+- Full audio track editing, transitions, keyframes, and advanced effects.
+- Installer packaging and broad Windows hardware testing.
+
+These are planned features; do not treat them as available until implemented and tested.
 
 ## Requirements
 
 - Windows 10 or later
 - Python 3 with Tkinter
 - `yt-dlp.exe`
-- `ffmpeg.exe` (FFmpeg build with `libx264`)
+- `ffmpeg.exe` with `libx264` and subtitle filter support
 
-The app looks for `yt-dlp.exe` and `ffmpeg.exe` beside the Python script, in an `ffmpeg\bin` subfolder for FFmpeg, in the user's Downloads folder for the tools, or on `PATH`.
+The app searches beside the Python script, in an `ffmpeg\bin` subfolder, in the user's Downloads folder, and on `PATH` for the required executables.
 
 ## Run
 
 1. Install Python 3 if it is not already installed.
 2. Download `yt-dlp.exe` from the official yt-dlp project releases.
-3. Download an FFmpeg Windows build from a trusted source such as the gyan.dev builds page.
+3. Download an FFmpeg Windows build from a trusted source.
 4. Put `yt-dlp.exe` and `ffmpeg.exe` beside `clipforge_studio.py` (or add them to `PATH`).
 5. Double-click `START_APP.bat`.
-6. Paste a permitted video URL, choose **Add to Queue**, then **Start**.
+6. Add a permitted video URL and click **Download**.
+7. Select the downloaded item and choose **Split Selected** or **Open Full Editor**.
 
-Output is saved in the selected folder. Temporary downloads are kept in `_ClipForge_Work`.
+Temporary downloads are kept in `_ClipForge_Work`.
 
 ## Important limitations
 
-- Download availability and supported sites depend on the installed `yt-dlp` version and each site's rules.
-- This app does not bypass DRM, private-video restrictions, logins, or other access controls.
+- Download availability depends on yt-dlp support and each site's rules.
+- This app does not bypass DRM, private-video restrictions, logins, or access controls.
 - Use it only for content you own or have permission to download and process.
-- This is an early community starter release. It has not been packaged as a signed Windows installer and has not been tested across a range of Windows PCs.
-
-## Project status
-
-Version: `0.1.1` — GitHub starter package. Contributions and bug reports are welcome.
+- This is an early development preview. It has not been packaged as a signed Windows installer or tested across a range of PCs.
 
 ## License
 
