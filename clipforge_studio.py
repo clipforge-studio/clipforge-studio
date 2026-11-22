@@ -95,6 +95,7 @@ class App:
         actions.pack(fill="x", padx=22, pady=10)
         self.button(actions, "Split Selected", self.split_dialog, "#7c3aed").pack(side="left")
         self.button(actions, "Open Full Editor", self.editor_dialog, "#0f766e").pack(side="left", padx=7)
+        self.button(actions, "Timeline / Multi-Cut", self.timeline_dialog, "#9333ea").pack(side="left", padx=7)
         self.button(actions, "Preview Video", self.preview, "#475569").pack(side="left")
         self.pb = ttk.Progressbar(self.root, maximum=100)
         self.pb.pack(fill="x", padx=22, pady=(3, 7))
@@ -340,6 +341,151 @@ class App:
                 "-movflags", "+faststart", output]
         if self.run_command(cmd):
             raise RuntimeError("FFmpeg could not export this clip.")
+
+
+    def probe_duration(self, source):
+        ffprobe = locate("ffprobe")
+        if not ffprobe:
+            raise RuntimeError("ffprobe.exe is required. Install it beside FFmpeg or add it to PATH.")
+        result = subprocess.run([ffprobe, "-v", "error", "-show_entries", "format=duration",
+                                 "-of", "default=noprint_wrappers=1:nokey=1", source],
+                                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if result.returncode:
+            raise RuntimeError("Could not read video duration: " + result.stderr[-400:])
+        duration = float(result.stdout.strip())
+        if duration <= 0:
+            raise RuntimeError("Invalid video duration.")
+        return duration
+
+    def seconds_label(self, value):
+        total = int(value)
+        return f"{total//3600:02d}:{(total%3600)//60:02d}:{total%60:02d}"
+
+    def timeline_dialog(self):
+        source = self.selected()
+        if not source:
+            return
+        try:
+            duration = self.probe_duration(source)
+        except Exception as exc:
+            messagebox.showerror(APP, str(exc))
+            return
+        win = tk.Toplevel(self.root)
+        win.title("ClipForge Studio — Timeline / Multi-Cut")
+        win.geometry("900x560")
+        win.configure(bg="#111827")
+        win.transient(self.root)
+        win.grab_set()
+        tk.Label(win, text="Timeline • Multi-Cut Editor", bg="#111827", fg="white",
+                 font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=18, pady=(15, 3))
+        tk.Label(win, text=Path(source).name, bg="#111827", fg="#94a3b8",
+                 wraplength=850).pack(anchor="w", padx=18, pady=(0, 12))
+        current = tk.DoubleVar(value=0.0)
+        cuts = []
+        left, right = 22, 850
+        canvas = tk.Canvas(win, height=105, bg="#0b1220", highlightthickness=0)
+        canvas.pack(fill="x", padx=18, pady=8)
+        canvas.create_text(left, 15, text="00:00:00", fill="#cbd5e1", anchor="w")
+        canvas.create_text(right, 15, text=self.seconds_label(duration), fill="#cbd5e1", anchor="e")
+        canvas.create_rectangle(left, 39, right, 82, fill="#334155", outline="#64748b")
+        canvas.create_text((left+right)/2, 60, text="VIDEO TIMELINE — click to move playhead",
+                           fill="#e2e8f0")
+        playhead = canvas.create_line(left, 28, left, 94, fill="#facc15", width=3)
+        markers = []
+        def xpos(value):
+            return left + (right-left) * max(0, min(duration, value)) / duration
+        def refresh():
+            for marker in markers:
+                canvas.delete(marker)
+            markers.clear()
+            for value in cuts:
+                x = xpos(value)
+                markers.append(canvas.create_line(x, 32, x, 89, fill="#f87171", width=3))
+            x = xpos(current.get())
+            canvas.coords(playhead, x, 25, x, 96)
+            label.config(text="Playhead: " + self.seconds_label(current.get()))
+        def seek(event):
+            current.set(max(0, min(duration, (event.x-left)/(right-left)*duration)))
+            refresh()
+        canvas.bind("<Button-1>", seek)
+        bar = tk.Frame(win, bg="#111827")
+        bar.pack(fill="x", padx=18, pady=5)
+        label = tk.Label(bar, text="Playhead: 00:00:00", bg="#111827", fg="#facc15")
+        label.pack(side="left")
+        listing = tk.Listbox(win, height=9, bg="#1f2937", fg="white",
+                             selectbackground="#1d4ed8", relief="flat", font=("Consolas", 10))
+        listing.pack(fill="both", expand=True, padx=18, pady=8)
+        def refresh_list():
+            listing.delete(0, "end")
+            for index, value in enumerate(cuts, 1):
+                listing.insert("end", f"{index:02d}    {self.seconds_label(value)}")
+            refresh()
+        def add_cut():
+            value = round(current.get(), 2)
+            if value <= 0 or value >= duration:
+                messagebox.showinfo(APP, "Choose a point inside the video.")
+                return
+            if any(abs(value-old) < 0.5 for old in cuts):
+                messagebox.showinfo(APP, "A cut point already exists nearby.")
+                return
+            cuts.append(value)
+            cuts.sort()
+            refresh_list()
+        def remove_cut():
+            selected = listing.curselection()
+            if selected:
+                del cuts[selected[0]]
+                refresh_list()
+        self.button(bar, "Add Cut Here", add_cut, "#7c3aed").pack(side="left", padx=12)
+        self.button(bar, "Remove Selected", remove_cut, "#475569").pack(side="left")
+        footer = tk.Frame(win, bg="#111827")
+        footer.pack(fill="x", padx=18, pady=12)
+        tk.Label(footer, text="Output: " + self.format.get() + " • H.264 MP4",
+                 bg="#111827", fg="#94a3b8").pack(side="left")
+        def export():
+            if not cuts:
+                messagebox.showinfo(APP, "Add at least one cut point first.")
+                return
+            if self.busy:
+                return
+            points = [0.0] + sorted(cuts) + [duration]
+            ranges = [(points[i], points[i+1]) for i in range(len(points)-1)
+                      if points[i+1]-points[i] >= 0.25]
+            win.destroy()
+            self.busy = True
+            threading.Thread(target=self.timeline_export_worker,
+                             args=(source, ranges, self.format.get()), daemon=True).start()
+        self.button(footer, "Export All Clips", export, "#15803d").pack(side="right")
+        refresh()
+
+    def timeline_export_worker(self, source, ranges, output_format):
+        try:
+            stem = clean(Path(source).stem)
+            dest = os.path.join(self.out, stem + "_Timeline_Clips")
+            os.makedirs(dest, exist_ok=True)
+            formats = ["Landscape", "Vertical 9:16"] if output_format == "Both" else [output_format]
+            for fmt in formats:
+                folder = os.path.join(dest, "Landscape" if fmt == "Landscape" else "Vertical_9x16")
+                os.makedirs(folder, exist_ok=True)
+                for index, (start, end) in enumerate(ranges, 1):
+                    output = os.path.join(folder, f"Clip_{index:03d}.mp4")
+                    self.events.put(("status", f"Exporting {fmt} clip {index}/{len(ranges)}"))
+                    vf = self.video_filter(fmt)
+                    cmd = [self.ffmpeg, "-y", "-ss", str(start), "-i", source, "-t", str(end-start),
+                           "-vf" if fmt == "Landscape" else "-filter_complex", vf,
+                           "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?",
+                           "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                           "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                           "-movflags", "+faststart", output]
+                    if self.run_command(cmd):
+                        raise RuntimeError("FFmpeg failed on clip " + str(index))
+            self.events.put(("status", "Timeline export complete: " + dest))
+        except Exception as exc:
+            self.events.put(("log", "ERROR: " + str(exc)))
+            self.events.put(("status", "Timeline export failed. Check the log."))
+        finally:
+            self.events.put(("finished",))
 
     def editor_dialog(self):
         source = self.selected()
