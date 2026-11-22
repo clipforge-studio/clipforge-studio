@@ -288,12 +288,15 @@ class App:
         finally:
             self.events.put(("finished",))
 
-    def video_filter(self, fmt, effect="None", text="", font_size=48, position="Bottom"):
+    def video_filter(self, fmt, effect="None", text="", font_size=48, position="Bottom", subtitle=None):
         filters = []
         if fmt == "Vertical 9:16":
-            filters.append("split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[front];[blur][front]overlay=(W-w)/2:(H-h)/2,setsar=1[vout]")
+            base = ("[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
+                    "crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease"
+                    "[front];[blur][front]overlay=(W-w)/2:(H-h)/2")
+            filters.append(base)
         else:
-            filters.append("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1")
+            filters.append("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
         if effect == "Black & White":
             filters.append("hue=s=0")
         elif effect == "Warm":
@@ -302,14 +305,19 @@ class App:
             filters.append("curves=vintage")
         elif effect == "Sharpen":
             filters.append("unsharp=5:5:0.8:3:3:0.4")
+        if subtitle:
+            filters.append("subtitles='" + ffpath(subtitle) + "'")
         if text.strip():
             y = "h-th-70" if position == "Bottom" else ("70" if position == "Top" else "(h-th)/2")
-            safe = text.replace("\\", "\\\\\\\\").replace(":", "\\\\:").replace("'", "\\\\'").replace("%", "\\\\%").replace(",", "\\\\,")
+            safe = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'").replace("%", "\\%").replace(",", "\\,")
             filters.append("drawtext=text='" + safe + "':fontcolor=white:fontsize=" + str(int(font_size)) +
                            ":borderw=3:bordercolor=black:x=(w-text_w)/2:y=" + y)
+        filters.append("setsar=1")
+        if fmt == "Vertical 9:16":
+            return filters[0] + ";" + filters[1].replace(";", ",") + "[vout]" if len(filters) == 1 else filters[0] + "," + ",".join(filters[1:]) + "[vout]"
         return ",".join(filters)
 
-    def encode_segments(self, source, folder, duration, fmt):
+        def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
         vf = self.video_filter(fmt)
         cmd = [self.ffmpeg, "-y", "-i", source, "-vf" if fmt == "Landscape" else "-filter_complex", vf,
@@ -321,12 +329,13 @@ class App:
             raise RuntimeError("FFmpeg failed while creating " + fmt + " parts.")
 
     def encode_clip(self, source, output, start, end, fmt, subtitle, effect, text):
-        vf = self.video_filter(fmt, effect or "None", text or "")
+        vf = self.video_filter(fmt, effect or "None", text or "", subtitle=subtitle)
         cmd = [self.ffmpeg, "-y", "-ss", start, "-to", end, "-i", source]
-        if subtitle:
-            vf += ",subtitles='" + ffpath(subtitle) + "'"
-        cmd += ["-vf" if fmt == "Landscape" else "-filter_complex", vf,
-                "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+        if fmt == "Vertical 9:16":
+            cmd += ["-filter_complex", vf, "-map", "[vout]"]
+        else:
+            cmd += ["-vf", vf, "-map", "0:v:0"]
+        cmd += ["-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
                 "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                 "-movflags", "+faststart", output]
         if self.run_command(cmd):
@@ -336,84 +345,156 @@ class App:
         source = self.selected()
         if not source:
             return
+        ffprobe = locate("ffprobe")
+        if not ffprobe:
+            messagebox.showerror(APP, "ffprobe.exe is required for the timeline editor.")
+            return
+        probe = subprocess.run([ffprobe, "-v", "error", "-show_entries", "format=duration",
+                                "-of", "default=noprint_wrappers=1:nokey=1", source],
+                               capture_output=True, text=True,
+                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        try:
+            duration = float(probe.stdout.strip())
+            if duration <= 0:
+                raise ValueError()
+        except Exception:
+            messagebox.showerror(APP, "Could not read the video's duration.")
+            return
+
         win = tk.Toplevel(self.root)
-        win.title("ClipForge Studio — Full Editor")
-        win.geometry("560x570")
+        win.title("ClipForge Studio — Timeline Editor")
+        win.geometry("820x650")
         win.configure(bg="#1f2937")
         win.transient(self.root)
-        win.grab_set()
-        tk.Label(win, text="Clip Editor", bg="#1f2937", fg="white", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=18, pady=(16, 3))
-        tk.Label(win, text=Path(source).name, bg="#1f2937", fg="#94a3b8", wraplength=510).pack(anchor="w", padx=18, pady=(0, 12))
-        form = tk.Frame(win, bg="#1f2937")
-        form.pack(fill="x", padx=18)
-        start, end = tk.StringVar(value="00:00:00"), tk.StringVar(value="00:00:30")
+        tk.Label(win, text="Timeline Editor", bg="#1f2937", fg="white",
+                 font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=18, pady=(15, 3))
+        tk.Label(win, text=Path(source).name, bg="#1f2937", fg="#94a3b8",
+                 wraplength=770).pack(anchor="w", padx=18)
+        tk.Label(win, text="Click on the timeline to add cut points. Each cut creates a separate exported clip.",
+                 bg="#1f2937", fg="#cbd5e1").pack(anchor="w", padx=18, pady=(12, 4))
+        timeline = tk.Canvas(win, height=90, bg="#0b1220", highlightthickness=0)
+        timeline.pack(fill="x", padx=18, pady=5)
+        cuts = []
+        playhead = [0.0]
+        current = tk.StringVar(value="00:00:00")
+        def x_for(t):
+            return 12 + (max(1, timeline.winfo_width()-24) * t / duration)
+        def redraw():
+            timeline.delete("all")
+            width = max(1, timeline.winfo_width()-24)
+            timeline.create_rectangle(12, 25, 12+width, 65, fill="#334155", outline="#64748b")
+            for cut in cuts:
+                x = x_for(cut)
+                timeline.create_line(x, 13, x, 77, fill="#f59e0b", width=2)
+            x = x_for(playhead[0])
+            timeline.create_line(x, 7, x, 82, fill="#22c55e", width=3)
+            timeline.create_text(12, 4, anchor="nw", text="00:00:00", fill="#cbd5e1")
+            timeline.create_text(12+width, 4, anchor="ne", text=self.format_time(duration), fill="#cbd5e1")
+        def click(event):
+            t = max(0.0, min(duration, (event.x-12)/max(1, timeline.winfo_width()-24)*duration))
+            playhead[0] = t
+            current.set(self.format_time(t))
+            if 0.5 < t < duration-0.5 and all(abs(t-x) > 0.5 for x in cuts):
+                cuts.append(t)
+                cuts.sort()
+            redraw()
+        timeline.bind("<Button-1>", click)
+        timeline.bind("<Configure>", lambda event: redraw())
+        info = tk.Frame(win, bg="#1f2937")
+        info.pack(fill="x", padx=18, pady=4)
+        tk.Label(info, text="Playhead:", bg="#1f2937", fg="#cbd5e1").pack(side="left")
+        tk.Label(info, textvariable=current, bg="#1f2937", fg="#22c55e",
+                 font=("Consolas", 11, "bold")).pack(side="left", padx=7)
+        self.button(info, "Undo Last Cut", lambda: (cuts.pop() if cuts else None, redraw()), "#475569").pack(side="right")
+        self.button(info, "Preview Video", lambda: os.startfile(source), "#475569").pack(side="right", padx=6)
+
+        tk.Label(win, text="SUBTITLES", bg="#1f2937", fg="#cbd5e1",
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 3))
+        subrow = tk.Frame(win, bg="#1f2937")
+        subrow.pack(fill="x", padx=18)
         subtitle = tk.StringVar()
-        text = tk.StringVar()
-        effect = tk.StringVar(value="None")
-        position = tk.StringVar(value="Bottom")
-        size = tk.StringVar(value="48")
-        def field(label, var, row, width=34):
-            tk.Label(form, text=label, bg="#1f2937", fg="#cbd5e1").grid(row=row, column=0, sticky="w", pady=6)
-            ttk.Entry(form, textvariable=var, width=width).grid(row=row, column=1, sticky="ew", pady=6)
-        field("Start time (HH:MM:SS)", start, 0)
-        field("End time (HH:MM:SS)", end, 1)
-        tk.Label(form, text="Effect preset", bg="#1f2937", fg="#cbd5e1").grid(row=2, column=0, sticky="w", pady=6)
-        ttk.Combobox(form, textvariable=effect, values=["None", "Black & White", "Warm", "Vintage", "Sharpen"], state="readonly").grid(row=2, column=1, sticky="ew")
-        field("Text / subtitle overlay", text, 3)
-        tk.Label(form, text="Text position", bg="#1f2937", fg="#cbd5e1").grid(row=4, column=0, sticky="w", pady=6)
-        ttk.Combobox(form, textvariable=position, values=["Top", "Center", "Bottom"], state="readonly").grid(row=4, column=1, sticky="ew")
-        field("Text size", size, 5)
-        tk.Label(form, text="Subtitle file (.srt)", bg="#1f2937", fg="#cbd5e1").grid(row=6, column=0, sticky="w", pady=6)
-        subrow = tk.Frame(form, bg="#1f2937")
-        subrow.grid(row=6, column=1, sticky="ew")
         ttk.Entry(subrow, textvariable=subtitle).pack(side="left", fill="x", expand=True)
-        self.button(subrow, "Browse", lambda: subtitle.set(filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()), "#475569").pack(side="left", padx=5)
-        form.columnconfigure(1, weight=1)
-        tk.Label(win, text="Exports one edited MP4 clip. Subtitle files are burned into the video.",
-                 bg="#1f2937", fg="#94a3b8", wraplength=510).pack(anchor="w", padx=18, pady=12)
+        self.button(subrow, "Import SRT", lambda: subtitle.set(
+            filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()),
+            "#475569").pack(side="left", padx=6)
+
+        tk.Label(win, text="EFFECTS & TITLE", bg="#1f2937", fg="#cbd5e1",
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 3))
+        opts = tk.Frame(win, bg="#1f2937")
+        opts.pack(fill="x", padx=18)
+        effect, text, size, position = tk.StringVar(value="None"), tk.StringVar(), tk.StringVar(value="48"), tk.StringVar(value="Bottom")
+        tk.Label(opts, text="Filter", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=0, sticky="w")
+        ttk.Combobox(opts, textvariable=effect, values=["None", "Black & White", "Warm", "Vintage", "Sharpen"],
+                     state="readonly", width=16).grid(row=1, column=0, padx=(0, 10), sticky="w")
+        tk.Label(opts, text="Title / text overlay", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=1, sticky="w")
+        ttk.Entry(opts, textvariable=text, width=25).grid(row=1, column=1, padx=(0, 10), sticky="w")
+        tk.Label(opts, text="Size", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=2, sticky="w")
+        ttk.Entry(opts, textvariable=size, width=6).grid(row=1, column=2, padx=(0, 10), sticky="w")
+        tk.Label(opts, text="Position", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=3, sticky="w")
+        ttk.Combobox(opts, textvariable=position, values=["Top", "Center", "Bottom"],
+                     state="readonly", width=10).grid(row=1, column=3, sticky="w")
+        tk.Label(win, text="Output format: " + self.format.get() + "  •  H.264 MP4 export",
+                 bg="#1f2937", fg="#94a3b8").pack(anchor="w", padx=18, pady=12)
+
         def export():
+            if self.busy:
+                messagebox.showinfo(APP, "Wait for the current task to finish.", parent=win)
+                return
             try:
-                a, b = self.to_seconds(start.get()), self.to_seconds(end.get())
-                if b <= a or not 8 <= int(size.get()) <= 160:
+                font_size = int(size.get())
+                if not 10 <= font_size <= 160:
                     raise ValueError()
                 if subtitle.get() and not os.path.isfile(subtitle.get()):
                     raise ValueError()
             except Exception:
-                messagebox.showerror(APP, "Check start/end time, text size, and subtitle file.", parent=win)
+                messagebox.showerror(APP, "Check text size and subtitle file.", parent=win)
                 return
             win.destroy()
-            if self.busy:
-                messagebox.showinfo(APP, "Wait for the current task to finish.")
-                return
-            output = os.path.join(self.out, clean(Path(source).stem) + "_Edited.mp4")
             self.busy = True
-            threading.Thread(target=self.editor_worker, args=(source, output, start.get(), end.get(),
-                            subtitle.get() or None, effect.get(), text.get(), int(size.get()), position.get()), daemon=True).start()
-        self.button(win, "Export Edited Video", export, "#0f766e").pack(anchor="e", padx=18, pady=14)
+            threading.Thread(target=self.editor_worker,
+                             args=(source, sorted(cuts), subtitle.get() or None, effect.get(),
+                                   text.get(), font_size, position.get()),
+                             daemon=True).start()
+        self.button(win, "Export Edited Video", export, "#0f766e").pack(anchor="e", padx=18, pady=12)
+        redraw()
 
-    def editor_worker(self, source, output, start, end, subtitle, effect, text, size, position):
+    @staticmethod
+    def format_time(seconds):
+        total = max(0, int(seconds))
+        return f"{total//3600:02d}:{(total%3600)//60:02d}:{total%60:02d}"
+
+        def editor_worker(self, source, cuts, subtitle, effect, text, size, position):
         try:
-            fmt = self.format.get()
-            if fmt == "Both":
-                fmt = "Landscape"
-            vf = self.video_filter(fmt, effect, text, size, position)
-            cmd = [self.ffmpeg, "-y", "-ss", start, "-to", end, "-i", source]
-            if subtitle:
-                vf += ",subtitles='" + ffpath(subtitle) + "'"
-            cmd += ["-vf" if fmt == "Landscape" else "-filter_complex", vf,
-                    "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
-                    "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
-                    "-movflags", "+faststart", output]
-            if self.run_command(cmd):
-                raise RuntimeError("FFmpeg export failed.")
-            self.events.put(("status", "Edited video saved: " + output))
+            stem = clean(Path(source).stem)
+            folder = os.path.join(self.out, stem + "_Edited")
+            os.makedirs(folder, exist_ok=True)
+            formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
+            for fmt in formats:
+                vf = self.video_filter(fmt, effect, text, size, position, subtitle)
+                output = os.path.join(folder, fmt.replace(" ", "_").replace(":", "") +
+                                      ("_Part_%03d.mp4" if cuts else ".mp4"))
+                cmd = [self.ffmpeg, "-y", "-i", source]
+                if fmt == "Vertical 9:16":
+                    cmd += ["-filter_complex", vf, "-map", "[vout]"]
+                else:
+                    cmd += ["-vf", vf, "-map", "0:v:0"]
+                cmd += ["-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+                        "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                        "-movflags", "+faststart"]
+                if cuts:
+                    cmd += ["-f", "segment", "-segment_times", ",".join(f"{x:.3f}" for x in cuts),
+                            "-reset_timestamps", "1", "-segment_format", "mp4"]
+                cmd += [output]
+                if self.run_command(cmd):
+                    raise RuntimeError("FFmpeg export failed for " + fmt)
+            self.events.put(("status", "Edited export complete: " + folder))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
             self.events.put(("status", "Editor export failed. Check the log."))
         finally:
             self.events.put(("finished",))
 
-    def preview(self):
+        def preview(self):
         source = self.selected()
         if source:
             try:
