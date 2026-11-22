@@ -291,7 +291,7 @@ class App:
     def video_filter(self, fmt, effect="None", text="", font_size=48, position="Bottom"):
         filters = []
         if fmt == "Vertical 9:16":
-            filters.append("split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[front];[blur][front]overlay=(W-w)/2:(H-h)/2,setsar=1")
+            filters.append("split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[front];[blur][front]overlay=(W-w)/2:(H-h)/2,setsar=1[vout]")
         else:
             filters.append("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1")
         if effect == "Black & White":
@@ -313,7 +313,7 @@ class App:
         output = os.path.join(folder, "Part_%03d.mp4")
         vf = self.video_filter(fmt)
         cmd = [self.ffmpeg, "-y", "-i", source, "-vf" if fmt == "Landscape" else "-filter_complex", vf,
-               "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+               "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "segment",
                "-segment_time", str(duration), "-reset_timestamps", "1", "-segment_format", "mp4", output]
         code = self.run_command(cmd)
@@ -326,7 +326,7 @@ class App:
         if subtitle:
             vf += ",subtitles='" + ffpath(subtitle) + "'"
         cmd += ["-vf" if fmt == "Landscape" else "-filter_complex", vf,
-                "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+                "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
                 "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                 "-movflags", "+faststart", output]
         if self.run_command(cmd):
@@ -401,7 +401,7 @@ class App:
             if subtitle:
                 vf += ",subtitles='" + ffpath(subtitle) + "'"
             cmd += ["-vf" if fmt == "Landscape" else "-filter_complex", vf,
-                    "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+                    "-map", "0:v:0" if fmt == "Landscape" else "[vout]", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
                     "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                     "-movflags", "+faststart", output]
             if self.run_command(cmd):
