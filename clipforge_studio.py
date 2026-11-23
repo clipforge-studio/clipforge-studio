@@ -1,4 +1,4 @@
-import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile
+import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 from editor_engine import FILTER_CATEGORIES, build_filter_chain
@@ -10,7 +10,12 @@ def locate(name):
     for p in [Path(__file__).parent / exe, Path(__file__).parent / "ffmpeg" / "bin" / exe, Path.home() / "Downloads" / exe]:
         if p.is_file():
             return str(p)
-    return shutil.which(exe) or shutil.which(name)
+    found = shutil.which(exe) or shutil.which(name)
+    if found:
+        return found
+    if name == "yt-dlp" and importlib.util.find_spec("yt_dlp"):
+        return sys.executable
+    return None
 
 def clean(s):
     return re.sub(r'[<>:"/\\\\|?*]', "_", s).strip(" ._")[:140] or "video"
@@ -550,7 +555,10 @@ class App:
                 work = os.path.join(self.out, "_ClipForge_Work", "job_" + str(index).zfill(3))
                 os.makedirs(work, exist_ok=True)
                 template = os.path.join(work, "%(title).150B [%(id)s].%(ext)s")
-                code = self.run_command([self.ytdlp, "--no-playlist", "--newline", "-f", "bv*+ba/b",
+                ytdlp_command = ([self.ytdlp, "-m", "yt_dlp"] if
+                    os.path.normcase(os.path.abspath(self.ytdlp)) ==
+                    os.path.normcase(os.path.abspath(sys.executable)) else [self.ytdlp])
+                code = self.run_command(ytdlp_command + ["--no-playlist", "--newline", "-f", "bv*+ba/b",
                                          "--merge-output-format", "mp4", "--ffmpeg-location",
                                          os.path.dirname(self.ffmpeg), "-o", template, url])
                 if code:
