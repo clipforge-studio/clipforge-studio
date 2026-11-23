@@ -373,8 +373,8 @@ class App:
                     else:
                         cmd += ["-vf", vf, "-map", "0:v:0"]
                     cmd += ["-map", "0:a?", "-af", ",".join(filters)]
-                cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-                        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                cmd += ["-c:v", "libx264", *self.encoding_args(),
+                        "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart", output]
                 if self.run_command(cmd):
                     raise RuntimeError("FFmpeg audio export failed for " + fmt)
@@ -657,8 +657,8 @@ class App:
                 self.events.put(("row", iid, url[:90], "Converting to H.264", source))
                 self.events.put(("status", "Converting to H.264 MP4..."))
                 convert_cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
-                               "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-                               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                               "-c:v", "libx264", *self.encoding_args(),
+                               "-c:a", "aac", "-b:a", "160k",
                                "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", converted]
                 if self.run_command(convert_cmd, duration=source_duration) != 0 or not os.path.isfile(converted):
                     self.events.put(("row", iid, url[:90], "Conversion failed", source))
@@ -779,8 +779,8 @@ class App:
         output = os.path.join(folder, "Part_%03d.mp4")
         vf = self.video_filter(fmt)
         cmd = [self.ffmpeg, "-y", "-i", source, "-filter_complex" if fmt == "Vertical 9:16" else "-vf", vf,
-               "-map", "[vout]" if fmt == "Vertical 9:16" else "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-f", "segment",
+               "-map", "[vout]" if fmt == "Vertical 9:16" else "0:v:0", "-map", "0:a?",
+               "-c:v", "libx264", *self.encoding_args(), "-c:a", "aac", "-b:a", "160k", "-f", "segment",
                "-segment_time", str(duration), "-reset_timestamps", "1", "-segment_format", "mp4", output]
         code = self.run_command(cmd)
         if code:
@@ -793,8 +793,8 @@ class App:
             cmd += ["-filter_complex", vf, "-map", "[vout]"]
         else:
             cmd += ["-vf", vf, "-map", "0:v:0"]
-        cmd += ["-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
-                "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+        cmd += ["-map", "0:a?", "-c:v", "libx264", *self.encoding_args(),
+                "-c:a", "aac", "-b:a", "160k",
                 "-movflags", "+faststart", output]
         if self.run_command(cmd):
             raise RuntimeError("FFmpeg could not export this clip.")
@@ -933,8 +933,8 @@ class App:
                     cmd = [self.ffmpeg, "-y", "-ss", str(start), "-i", source, "-t", str(end-start),
                            "-filter_complex" if fmt == "Vertical 9:16" else "-vf", vf,
                            "-map", "[vout]" if fmt == "Vertical 9:16" else "0:v:0", "-map", "0:a?",
-                           "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-                           "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                           "-c:v", "libx264", *self.encoding_args(),
+                           "-c:a", "aac", "-b:a", "160k",
                            "-movflags", "+faststart", output]
                     if self.run_command(cmd):
                         raise RuntimeError("FFmpeg failed on clip " + str(index))
@@ -1400,8 +1400,8 @@ class App:
                 speed = float((adjustments or {}).get("speed", 1))
                 if abs(speed - 1) > 0.0001:
                     cmd += ["-af", "atempo={:.4f}".format(speed)]
-                cmd += ["-c:v", "libx264", "-preset", "veryfast",
-                        "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                cmd += ["-c:v", "libx264", *self.encoding_args(),
+                        "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart"]
                 if overlay_image_path:
                     cmd += ["-shortest"]
