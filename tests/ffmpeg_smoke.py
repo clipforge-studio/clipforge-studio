@@ -74,6 +74,21 @@ for fmt in ("Landscape", "Vertical 9:16"):
         if result.returncode:
             failures.append(("Canvas", fmt + " / " + mode, result.stderr[-1200:]))
 
+for resolution in ("720p", "1080p", "1440p"):
+    for fmt in ("Landscape", "Vertical 9:16"):
+        graph = build_filter_chain(fmt, "Original", {"resolution": resolution})
+        if fmt == "Vertical 9:16":
+            command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                *source, "-filter_complex", graph, "-map", "[vout]",
+                "-frames:v", "1", "-f", "null", "-"]
+        else:
+            command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                *source, "-vf", graph, "-frames:v", "1", "-f", "null", "-"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        total += 1
+        if result.returncode:
+            failures.append(("Resolution", resolution + " / " + fmt, result.stderr[-1200:]))
+
 fade_graph = build_filter_chain("Landscape", "Original",
     {"video_fade_in": 0.1, "video_fade_out": 0.1, "duration": 0.3})
 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
