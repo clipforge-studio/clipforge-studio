@@ -65,13 +65,24 @@ class App:
                  font=("Segoe UI", 16, "bold")).pack(anchor="w")
         tk.Label(brand, text="STUDIO  /  CREATOR WORKSPACE", bg="#10182b", fg="#7c8ba5",
                  font=("Segoe UI", 7, "bold")).pack(anchor="w", pady=(5, 0))
-        for label, active in [("▣   Home", True), ("↓   Downloads", False),
-                              ("✂   Split & Cut", False), ("▤   Subtitles", False),
-                              ("◈   Effects", False), ("♫   Audio", False)]:
-            tk.Label(sidebar, text=label, bg="#1d2a44" if active else "#10182b",
-                     fg="#e2e8f0" if active else "#8fa0bb", anchor="w",
-                     padx=16, pady=12, font=("Segoe UI", 10, "bold" if active else "normal")
-                     ).pack(fill="x", padx=10, pady=2)
+        nav_items = [
+            ("▣   Home", self.go_home),
+            ("↓   Downloads", self.go_downloads),
+            ("✂   Split & Cut", self.split_dialog),
+            ("▤   Subtitles", self.editor_dialog),
+            ("◈   Effects", self.editor_dialog),
+            ("♫   Audio", self.audio_dialog),
+        ]
+        self.nav_buttons = {}
+        for label, command in nav_items:
+            btn = tk.Button(sidebar, text=label, command=command, bg="#1d2a44" if label.startswith("▣") else "#10182b",
+                            fg="#e2e8f0" if label.startswith("▣") else "#8fa0bb",
+                            activebackground="#253653", activeforeground="#ffffff",
+                            anchor="w", padx=16, pady=12, relief="flat", bd=0,
+                            font=("Segoe UI", 10, "bold" if label.startswith("▣") else "normal"),
+                            cursor="hand2")
+            btn.pack(fill="x", padx=10, pady=2)
+            self.nav_buttons[label] = btn
         tk.Frame(sidebar, bg="#25324a", height=1).pack(fill="x", padx=16, pady=18)
         tk.Label(sidebar, text="WORKSPACE", bg="#10182b", fg="#60718d",
                  font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=18)
@@ -105,10 +116,10 @@ class App:
         linkrow = tk.Frame(hero, bg="#17243b")
         linkrow.pack(fill="x", padx=18, pady=(0, 16))
         self.url = tk.StringVar()
-        tk.Entry(linkrow, textvariable=self.url, bg="#0b1427", fg="#f8fafc",
-                 insertbackground="white", relief="flat", font=("Segoe UI", 11),
-                 highlightthickness=1, highlightbackground="#344765"
-                 ).pack(side="left", fill="x", expand=True, ipady=11, padx=(0, 8))
+        self.url_entry = tk.Entry(linkrow, textvariable=self.url, bg="#0b1427", fg="#f8fafc",
+                                  insertbackground="white", relief="flat", font=("Segoe UI", 11),
+                                  highlightthickness=1, highlightbackground="#344765")
+        self.url_entry.pack(side="left", fill="x", expand=True, ipady=11, padx=(0, 8))
         self.button(linkrow, "Paste link", self.paste, "#344765").pack(side="left", padx=(0, 7))
         self.button(linkrow, "＋  Add to Queue", self.add, "#344765").pack(side="left", padx=(0, 7))
         self.button(linkrow, "↓  Download", self.download, "#0e9f83").pack(side="left")
@@ -175,6 +186,103 @@ class App:
         self.log = tk.Text(bottom, height=3, bg="#080d18", fg="#8494ad",
                            font=("Consolas", 8), state="disabled", relief="flat")
         self.log.pack(fill="x", pady=(7, 0))
+
+    def go_home(self):
+        self.url_entry_focus()
+
+    def url_entry_focus(self):
+        try:
+            self.root.focus_force()
+            self.url_entry.focus_set()
+        except Exception:
+            pass
+        self.status.set("Home — paste a video link to get started.")
+
+    def go_downloads(self):
+        self.tree.focus_set()
+        children = self.tree.get_children()
+        if children:
+            self.tree.selection_set(children[-1])
+            self.tree.see(children[-1])
+        self.status.set("Downloads — select a completed video from your library.")
+
+    def audio_dialog(self):
+        source = self.selected()
+        if not source:
+            return
+        try:
+            duration = self.probe_duration(source)
+        except Exception as exc:
+            messagebox.showerror(APP, "Could not read video duration: " + str(exc))
+            return
+        win = tk.Toplevel(self.root)
+        win.title("ClipForge Studio — Audio")
+        win.configure(bg="#1f2937")
+        win.resizable(False, False)
+        win.transient(self.root)
+        win.grab_set()
+        tk.Label(win, text="Audio controls", bg="#1f2937", fg="white",
+                 font=("Segoe UI", 16, "bold")).pack(anchor="w", padx=20, pady=(18, 4))
+        tk.Label(win, text=Path(source).name, bg="#1f2937", fg="#94a3b8",
+                 wraplength=480).pack(anchor="w", padx=20, pady=(0, 14))
+        volume = tk.DoubleVar(value=100)
+        fade_in = tk.StringVar(value="0")
+        fade_out = tk.StringVar(value="0")
+        tk.Label(win, text="Original audio volume (%)", bg="#1f2937", fg="#cbd5e1").pack(anchor="w", padx=20)
+        ttk.Scale(win, from_=0, to=200, variable=volume, orient="horizontal", length=420).pack(padx=20, pady=8)
+        vol_label = tk.Label(win, text="100%", bg="#1f2937", fg="#a5b4fc")
+        vol_label.pack(anchor="e", padx=22)
+        volume.trace_add("write", lambda *_: vol_label.config(text=f"{int(volume.get())}%"))
+        fields = tk.Frame(win, bg="#1f2937")
+        fields.pack(fill="x", padx=20, pady=12)
+        tk.Label(fields, text="Fade in (seconds)", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=0, sticky="w")
+        tk.Label(fields, text="Fade out (seconds)", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=1, sticky="w", padx=12)
+        ttk.Entry(fields, textvariable=fade_in, width=12).grid(row=1, column=0, sticky="w")
+        ttk.Entry(fields, textvariable=fade_out, width=12).grid(row=1, column=1, sticky="w", padx=12)
+        tk.Label(win, text="Exports a new H.264 MP4; the source file stays unchanged.",
+                 bg="#1f2937", fg="#94a3b8").pack(anchor="w", padx=20, pady=6)
+        def export_audio():
+            try:
+                fi, fo = float(fade_in.get()), float(fade_out.get())
+                if fi < 0 or fo < 0 or fi + fo > duration:
+                    raise ValueError()
+            except Exception:
+                messagebox.showerror(APP, "Enter valid fade durations within the video length.", parent=win)
+                return
+            win.destroy()
+            if self.busy:
+                messagebox.showinfo(APP, "Wait for the current task to finish.")
+                return
+            self.busy = True
+            threading.Thread(target=self.audio_worker,
+                             args=(source, volume.get()/100.0, fi, fo, duration),
+                             daemon=True).start()
+        self.button(win, "Export Audio Adjustments", export_audio, "#0f766e").pack(anchor="e", padx=20, pady=18)
+
+    def audio_worker(self, source, volume, fade_in, fade_out, duration):
+        try:
+            filters = [f"volume={volume:.3f}"]
+            if fade_in > 0:
+                filters.append(f"afade=t=in:st=0:d={fade_in:.3f}")
+            if fade_out > 0:
+                filters.append(f"afade=t=out:st={max(0, duration-fade_out):.3f}:d={fade_out:.3f}")
+            stem = clean(Path(source).stem)
+            folder = os.path.join(self.out, stem + "_Audio")
+            os.makedirs(folder, exist_ok=True)
+            output = os.path.join(folder, stem + "_Audio_Adjusted.mp4")
+            cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
+                   "-vf", self.video_filter(self.format.get()), "-af", ",".join(filters),
+                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                   "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                   "-movflags", "+faststart", output]
+            if self.run_command(cmd):
+                raise RuntimeError("FFmpeg audio export failed.")
+            self.events.put(("status", "Audio export complete: " + output))
+        except Exception as exc:
+            self.events.put(("log", "ERROR: " + str(exc)))
+            self.events.put(("status", "Audio export failed. Check the log."))
+        finally:
+            self.events.put(("finished",))
 
     def paste(self):
         try:
