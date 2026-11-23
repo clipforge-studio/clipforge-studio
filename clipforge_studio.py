@@ -1146,6 +1146,10 @@ class App:
                 path = os.path.join(tempfile.gettempdir(),
                     "clipforge_filter_" + clean(category_name) + "_" + clean(name) + ".png")
                 try:
+                    if os.path.isfile(path):
+                        self.root.after(0, lambda n=name, p=path, t=token:
+                                        apply_filter_thumbnail(n, p, t))
+                        continue
                     graph = self.video_filter("Original", name)
                     graph += ",scale=170:78:force_original_aspect_ratio=decrease,pad=170:78:(ow-iw)/2:(oh-ih)/2"
                     command = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
