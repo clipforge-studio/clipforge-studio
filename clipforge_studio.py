@@ -1086,9 +1086,10 @@ class App:
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
                                         "subtitle_position": subtitle_position.get()})
+                subtitle_path = resolve_subtitle_path()
                 graph = self.video_filter(self.format.get() if self.format.get() != "Both" else "Landscape",
                     effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
-                    subtitle.get() or None, chosen_adjustments, chosen_overlay, overlay_image.get() or None)
+                    subtitle_path, chosen_adjustments, chosen_overlay, overlay_image.get() or None)
                 if graph.endswith("[vout]"):
                     graph = graph[:-6] + ",scale=800:450:force_original_aspect_ratio=decrease[vpreview]"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
@@ -1477,7 +1478,8 @@ class App:
                 font_size = int(overlay_size.get())
                 if not 10 <= font_size <= 180:
                     raise ValueError()
-                if subtitle.get() and not os.path.isfile(subtitle.get()):
+                subtitle_path = resolve_subtitle_path()
+                if subtitle_path and not os.path.isfile(subtitle_path):
                     raise ValueError()
                 adjustments = {key: value.get() for key, value in adjustment_vars.items()}
                 adjustments.update({"rotation": rotation_var.get(),
@@ -1513,7 +1515,7 @@ class App:
             self.busy = True
             self.set_export_controls(False)
             threading.Thread(target=self.editor_worker,
-                             args=(source, sorted(cuts), subtitle.get() or None, effect.get(),
+                             args=(source, sorted(cuts), subtitle_path, effect.get(),
                                    overlay_text.get(), font_size, overlay_position.get(),
                                    adjustments, overlay, self.format.get()),
                              daemon=True).start()
