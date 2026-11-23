@@ -333,16 +333,20 @@ class App:
             if self.busy:
                 messagebox.showinfo(APP, "Wait for the current task to finish.", parent=win)
                 return
+            selected_format = self.format.get()
+            selected_volume = volume.get()/100.0
+            selected_music = music_path.get() or None
+            selected_music_volume = music_volume.get()/100.0
             win.destroy()
             self.busy = True
             threading.Thread(target=self.audio_worker,
-                             args=(source, volume.get()/100.0, fi, fo, duration,
-                                   music_path.get() or None, music_volume.get()/100.0),
+                             args=(source, selected_volume, fi, fo, duration,
+                                   selected_music, selected_music_volume, selected_format),
                              daemon=True).start()
         self.button(win, "Export Audio Adjustments", export_audio, "#0f766e").pack(anchor="e", padx=20, pady=18)
 
     def audio_worker(self, source, volume, fade_in, fade_out, duration,
-                     music_path=None, music_volume=0.35):
+                     music_path=None, music_volume=0.35, selected_format="Landscape"):
         try:
             filters = [f"volume={volume:.3f}"]
             if fade_in > 0:
@@ -352,7 +356,6 @@ class App:
             stem = clean(Path(source).stem)
             folder = os.path.join(self.out, stem + "_Audio")
             os.makedirs(folder, exist_ok=True)
-            selected_format = self.format.get()
             formats = ["Landscape", "Vertical 9:16"] if selected_format == "Both" else [selected_format]
             for fmt in formats:
                 output = os.path.join(folder, stem + "_Audio_" +
@@ -742,8 +745,9 @@ class App:
             except Exception:
                 messagebox.showerror(APP, "Enter a valid positive duration and valid time values.", parent=win)
                 return
+            output_format = self.format.get()
             win.destroy()
-            self.process_video(source, *args)
+            self.process_video(source, *args, output_format)
         self.button(win, "Create Parts", go, "#7c3aed").pack(anchor="e", padx=18, pady=16)
 
     def to_seconds(self, value):
@@ -755,19 +759,20 @@ class App:
             raise ValueError()
         return h * 3600 + m * 60 + s
 
-    def process_video(self, source, mode, duration, start, end):
+    def process_video(self, source, mode, duration, start, end, output_format):
         if self.busy:
             messagebox.showinfo(APP, "Wait for the current task to finish.")
             return
         self.busy = True
-        threading.Thread(target=self.split_worker, args=(source, mode, duration, start, end), daemon=True).start()
+        threading.Thread(target=self.split_worker,
+                         args=(source, mode, duration, start, end, output_format), daemon=True).start()
 
-    def split_worker(self, source, mode, duration, start, end):
+    def split_worker(self, source, mode, duration, start, end, output_format):
         try:
             stem = clean(Path(source).stem)
             dest = os.path.join(self.out, stem + "_Clips")
             os.makedirs(dest, exist_ok=True)
-            formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
+            formats = ["Landscape", "Vertical 9:16"] if output_format == "Both" else [output_format]
             for fmt in formats:
                 folder_name = {"Landscape": "Landscape", "Vertical 9:16": "Vertical_9x16", "Original": "Original"}[fmt]
                 folder = os.path.join(dest, folder_name)
@@ -1403,7 +1408,7 @@ class App:
             threading.Thread(target=self.editor_worker,
                              args=(source, sorted(cuts), subtitle.get() or None, effect.get(),
                                    overlay_text.get(), font_size, overlay_position.get(),
-                                   adjustments, overlay),
+                                   adjustments, overlay, self.format.get()),
                              daemon=True).start()
         self.button(win, "Export Edited Video", export, "#0f766e").pack(anchor="e", padx=18, pady=12)
         redraw()
@@ -1414,12 +1419,12 @@ class App:
         return f"{total//3600:02d}:{(total%3600)//60:02d}:{total%60:02d}"
 
     def editor_worker(self, source, cuts, subtitle, effect, text, size, position,
-                      adjustments=None, overlay=None):
+                      adjustments=None, overlay=None, output_format="Landscape"):
         try:
             stem = clean(Path(source).stem)
             folder = os.path.join(self.out, stem + "_Edited")
             os.makedirs(folder, exist_ok=True)
-            formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
+            formats = ["Landscape", "Vertical 9:16"] if output_format == "Both" else [output_format]
             for fmt in formats:
                 overlay_image_path = (overlay or {}).get("image")
                 vf = self.video_filter(fmt, effect, text, size, position, subtitle,
