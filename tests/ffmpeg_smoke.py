@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from editor_engine import FILTER_CATEGORIES, build_filter_chain
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
 
 ffmpeg = shutil.which("ffmpeg")
 if not ffmpeg:
@@ -91,6 +91,32 @@ result = subprocess.run(command, capture_output=True, text=True)
 total += 1
 if result.returncode:
     failures.append(("Subtitles", "SRT burn-in and styling", result.stderr[-1200:]))
+
+import tempfile
+from pathlib import Path
+tmp = Path(tempfile.gettempdir())
+source_mp4 = tmp / "clipforge_audio_source.mp4"
+mixed_mp4 = tmp / "clipforge_audio_mixed.mp4"
+create_source = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+    "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=10:duration=0.5",
+    "-f", "lavfi", "-i", "sine=frequency=440:duration=0.5",
+    "-shortest", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", str(source_mp4)]
+created = subprocess.run(create_source, capture_output=True, text=True)
+if created.returncode == 0:
+    video_graph = "[0:v]scale=320:240[vout]"
+    audio_graph = build_audio_mix_graph(True, 0.8, 0.25, 0.05, 0.05, 0.5)
+    command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+        "-i", str(source_mp4), "-f", "lavfi", "-i", "sine=frequency=880:duration=0.5",
+        "-filter_complex", video_graph + ";" + audio_graph,
+        "-map", "[vout]", "-map", "[aout]", "-shortest",
+        "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", str(mixed_mp4)]
+    result = subprocess.run(command, capture_output=True, text=True)
+    total += 1
+    if result.returncode or not mixed_mp4.is_file():
+        failures.append(("Audio", "Background music mix export", result.stderr[-1200:]))
+else:
+    total += 1
+    failures.append(("Audio", "Create audio test source", created.stderr[-1200:]))
 
 print("FFmpeg filter smoke tests: {}/{} passed".format(total-len(failures), total))
 if failures:
