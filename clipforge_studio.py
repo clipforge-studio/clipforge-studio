@@ -999,7 +999,8 @@ class App:
         filter_box = ttk.Combobox(filter_tab, textvariable=effect,
             values=list(FILTER_CATEGORIES["Basic"].keys()), state="readonly", width=30)
         filter_box.grid(row=1, column=1, sticky="w", padx=14)
-        preview_filter_name = tk.Label(filter_tab, text="46 named presets across 7 categories",
+        preset_count = sum(len(items) for items in FILTER_CATEGORIES.values())
+        preview_filter_name = tk.Label(filter_tab, text=f"{preset_count} named presets across {len(FILTER_CATEGORIES)} categories",
             bg="#172235", fg="#94a3b8", font=("Segoe UI", 9))
         preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=12)
         def change_category(_event=None):
