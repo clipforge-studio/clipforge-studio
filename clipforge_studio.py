@@ -888,7 +888,8 @@ class App:
 
         win = tk.Toplevel(self.root)
         win.title("ClipForge Studio — Timeline Editor")
-        win.geometry("820x650")
+        win.geometry("1040x880")
+        win.minsize(920, 760)
         win.configure(bg="#1f2937")
         win.transient(self.root)
         tk.Label(win, text="Timeline Editor", bg="#1f2937", fg="white",
@@ -1052,11 +1053,15 @@ class App:
                 messagebox.showinfo(APP, "Wait for the current task to finish.", parent=win)
                 return
             try:
-                font_size = int(size.get())
-                if not 10 <= font_size <= 160:
+                font_size = int(overlay_size.get())
+                if not 10 <= font_size <= 180:
                     raise ValueError()
                 if subtitle.get() and not os.path.isfile(subtitle.get()):
                     raise ValueError()
+                adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                overlay = {"text": overlay_text.get(), "text_size": font_size,
+                           "position": overlay_position.get(), "color": overlay_color.get(),
+                           "background": overlay_background.get(), "font": overlay_font.get()}
             except Exception:
                 messagebox.showerror(APP, "Check text size and subtitle file.", parent=win)
                 return
@@ -1064,7 +1069,8 @@ class App:
             self.busy = True
             threading.Thread(target=self.editor_worker,
                              args=(source, sorted(cuts), subtitle.get() or None, effect.get(),
-                                   text.get(), font_size, position.get()),
+                                   overlay_text.get(), font_size, overlay_position.get(),
+                                   adjustments, overlay),
                              daemon=True).start()
         self.button(win, "Export Edited Video", export, "#0f766e").pack(anchor="e", padx=18, pady=12)
         redraw()
@@ -1074,14 +1080,16 @@ class App:
         total = max(0, int(seconds))
         return f"{total//3600:02d}:{(total%3600)//60:02d}:{total%60:02d}"
 
-    def editor_worker(self, source, cuts, subtitle, effect, text, size, position):
+    def editor_worker(self, source, cuts, subtitle, effect, text, size, position,
+                      adjustments=None, overlay=None):
         try:
             stem = clean(Path(source).stem)
             folder = os.path.join(self.out, stem + "_Edited")
             os.makedirs(folder, exist_ok=True)
             formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
             for fmt in formats:
-                vf = self.video_filter(fmt, effect, text, size, position, subtitle)
+                vf = self.video_filter(fmt, effect, text, size, position, subtitle,
+                                       adjustments, overlay)
                 output = os.path.join(folder, fmt.replace(" ", "_").replace(":", "") +
                                       ("_Part_%03d.mp4" if cuts else ".mp4"))
                 cmd = [self.ffmpeg, "-y", "-i", source]
