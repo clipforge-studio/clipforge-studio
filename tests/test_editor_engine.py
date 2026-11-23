@@ -47,6 +47,14 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("aa=0.700", graph)
         self.assertTrue(graph.endswith("[vout]"))
 
+    def test_canvas_fit_modes(self):
+        fit = build_filter_chain("Landscape", "Original", {"canvas_mode": "Fit"})
+        fill = build_filter_chain("Landscape", "Original", {"canvas_mode": "Fill"})
+        stretch = build_filter_chain("Landscape", "Original", {"canvas_mode": "Stretch"})
+        self.assertIn("force_original_aspect_ratio=decrease", fit)
+        self.assertIn("crop=1920:1080", fill)
+        self.assertIn("scale=1920:1080", stretch)
+
     def test_rotation_and_flip_are_included(self):
         graph = build_filter_chain("Landscape", "Original",
             {"rotation": "90° CW", "flip_h": True, "flip_v": False})
