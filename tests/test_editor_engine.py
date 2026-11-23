@@ -98,6 +98,16 @@ class FilterCatalogTests(unittest.TestCase):
         graph = build_audio_mix_graph(False, 1, 0.5)
         self.assertEqual(graph, "[1:a]volume=0.500[aout]")
 
+    def test_text_and_image_overlay_timing_is_applied(self):
+        text_graph = build_filter_chain("Original", "Original",
+            {"overlay_start": 2, "overlay_end": 5},
+            {"text": "Timed title", "text_size": 40})
+        image_graph = build_filter_chain("Landscape", "Original",
+            {"overlay_start": 2, "overlay_end": 5},
+            {"image_position": "Center"}, overlay_image="logo.png")
+        self.assertIn("enable='between(t,2.000,5.000)'", text_graph)
+        self.assertIn("enable='between(t,2.000,5.000)'", image_graph)
+
     def test_unknown_preset_is_rejected(self):
         with self.assertRaises(ValueError):
             build_filter_chain("Original", "Not A Real Filter")
