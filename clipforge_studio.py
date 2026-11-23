@@ -1,4 +1,4 @@
-import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util
+import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util, sysconfig
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
@@ -7,7 +7,15 @@ APP = "ClipForge Studio"
 
 def locate(name):
     exe = name + ".exe"
-    for p in [Path(__file__).parent / exe, Path(__file__).parent / "ffmpeg" / "bin" / exe, Path.home() / "Downloads" / exe]:
+    candidates = [Path(__file__).parent / exe,
+                  Path(__file__).parent / "ffmpeg" / "bin" / exe,
+                  Path.home() / "Downloads" / exe]
+    if name == "yt-dlp":
+        try:
+            candidates.append(Path(sysconfig.get_path("scripts")) / exe)
+        except Exception:
+            pass
+    for p in candidates:
         if p.is_file():
             return str(p)
     found = shutil.which(exe) or shutil.which(name)
