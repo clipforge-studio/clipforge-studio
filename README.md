@@ -2,7 +2,7 @@
 
 A Windows desktop video utility for content you own or have permission to download and process.
 
-## Version 0.2 development branch
+## Version 0.3 development preview
 
 This branch introduces a download-first workflow and early editing tools. It is a development preview, not a finished CapCut replacement.
 
@@ -11,6 +11,11 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Queue supported video URLs and download with `yt-dlp`.
 - Keep downloaded videos in a selectable output folder.
 - Convert downloaded AV1/VP9 videos to H.264 + AAC MP4 for improved Windows playback compatibility.
+- Import existing local video files from your computer, as well as download supported URLs.
+- Restore the video library, output folder, last status, and last progress stage after closing and reopening the app.
+- Show a simple percentage and current stage in the main window; technical output is hidden unless **Advanced Log** is opened.
+- Show separate Downloading and H.264 conversion stages. FFmpeg conversion progress is read from its machine-readable progress output.
+- Stop the active FFmpeg/yt-dlp process when the app is closed and mark an in-progress task as interrupted.
 - Open an in-app frame preview window with a seek slider, frame refresh, and a button to play the full video in the system media player.
 - Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Choose when to split after download.
@@ -28,6 +33,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Subtitle authoring and per-caption timing inside the app are not implemented; subtitles are imported from an existing SRT file and burned into the export.
 - Live preview of text, subtitles, and effects before export is not available.
 - Full audio track editing, keyframes, and advanced effects are not implemented.
+- Active downloads/conversions are not automatically resumed after reopening; the saved history and source file path remain available for retry.
 - Installer packaging and broad Windows hardware testing remain outstanding.
 
 ## Requirements
