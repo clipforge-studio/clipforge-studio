@@ -690,10 +690,10 @@ class App:
             self.events.put(("finished",))
 
     def video_filter(self, fmt, effect="Original", text="", font_size=48, position="Bottom",
-                     subtitle=None, adjustments=None, overlay=None):
+                     subtitle=None, adjustments=None, overlay=None, overlay_image=None):
         if overlay is None:
             overlay = {"text": text, "text_size": font_size, "position": position}
-        return build_filter_chain(fmt, effect or "Original", adjustments, overlay, subtitle)
+        return build_filter_chain(fmt, effect or "Original", adjustments, overlay, subtitle, overlay_image)
 
     def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
@@ -953,12 +953,14 @@ class App:
                 chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
                 graph = self.video_filter(self.format.get() if self.format.get() != "Both" else "Landscape",
                     effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
-                    subtitle.get() or None, chosen_adjustments, chosen_overlay)
+                    subtitle.get() or None, chosen_adjustments, chosen_overlay, overlay_image.get() or None)
                 if graph.endswith("[vout]"):
                     graph = graph[:-6] + ",scale=800:450:force_original_aspect_ratio=decrease[vpreview]"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
-                           str(playhead[0]), "-i", source, "-filter_complex", graph,
-                           "-map", "[vpreview]", "-frames:v", "1", preview_png]
+                           str(playhead[0]), "-i", source]
+                    if overlay_image.get():
+                        cmd += ["-loop", "1", "-i", overlay_image.get()]
+                    cmd += ["-filter_complex", graph, "-map", "[vpreview]", "-frames:v", "1", preview_png]
                 else:
                     graph += ",scale=800:450:force_original_aspect_ratio=decrease"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
@@ -1074,6 +1076,30 @@ class App:
             bg="#172235", fg="#94a3b8").grid(row=6, column=0, columnspan=2,
                                              sticky="w", padx=14, pady=8)
 
+        overlay_image = tk.StringVar()
+        image_opacity = tk.DoubleVar(value=0.85)
+        image_scale = tk.DoubleVar(value=0.25)
+        image_position = tk.StringVar(value="Bottom Right")
+        image_row = tk.Frame(overlay_tab, bg="#172235")
+        image_row.grid(row=7, column=0, columnspan=2, sticky="ew", padx=14, pady=(10, 4))
+        ttk.Entry(image_row, textvariable=overlay_image).pack(side="left", fill="x", expand=True)
+        self.button(image_row, "Add PNG / Logo", lambda: overlay_image.set(
+            filedialog.askopenfilename(filetypes=[("Overlay images", "*.png *.webp *.jpg *.jpeg")])
+            or overlay_image.get()), "#475569").pack(side="left", padx=6)
+        tk.Label(overlay_tab, text="Image position", bg="#172235", fg="#cbd5e1").grid(
+            row=8, column=0, sticky="w", padx=14, pady=6)
+        ttk.Combobox(overlay_tab, textvariable=image_position,
+            values=["Top Left", "Top Right", "Center", "Bottom Left", "Bottom Right"],
+            state="readonly", width=18).grid(row=8, column=1, sticky="w", padx=14)
+        tk.Label(overlay_tab, text="Image opacity", bg="#172235", fg="#cbd5e1").grid(
+            row=9, column=0, sticky="w", padx=14, pady=6)
+        ttk.Scale(overlay_tab, from_=0.05, to=1, variable=image_opacity,
+            orient="horizontal").grid(row=9, column=1, sticky="ew", padx=14)
+        tk.Label(overlay_tab, text="Image size", bg="#172235", fg="#cbd5e1").grid(
+            row=10, column=0, sticky="w", padx=14, pady=6)
+        ttk.Scale(overlay_tab, from_=0.05, to=1, variable=image_scale,
+            orient="horizontal").grid(row=10, column=1, sticky="ew", padx=14)
+
         subtitle = tk.StringVar()
         tk.Label(subtitle_tab, text="Import SRT subtitle file", bg="#172235",
                  fg="#cbd5e1").pack(anchor="w", padx=14, pady=(16, 6))
@@ -1100,9 +1126,14 @@ class App:
                 if subtitle.get() and not os.path.isfile(subtitle.get()):
                     raise ValueError()
                 adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                if overlay_image.get() and not os.path.isfile(overlay_image.get()):
+                    raise ValueError()
+                adjustments["overlay_opacity"] = image_opacity.get()
+                adjustments["overlay_scale"] = image_scale.get()
                 overlay = {"text": overlay_text.get(), "text_size": font_size,
                            "position": overlay_position.get(), "color": overlay_color.get(),
-                           "background": overlay_background.get(), "font": overlay_font.get()}
+                           "background": overlay_background.get(), "font": overlay_font.get(),
+                           "image_position": image_position.get(), "image": overlay_image.get() or None}
             except Exception:
                 messagebox.showerror(APP, "Check text size and subtitle file.", parent=win)
                 return
@@ -1129,18 +1160,24 @@ class App:
             os.makedirs(folder, exist_ok=True)
             formats = ["Landscape", "Vertical 9:16"] if self.format.get() == "Both" else [self.format.get()]
             for fmt in formats:
+                overlay_image_path = (overlay or {}).get("image")
                 vf = self.video_filter(fmt, effect, text, size, position, subtitle,
-                                       adjustments, overlay)
+                                       adjustments, overlay, overlay_image_path)
                 output = os.path.join(folder, fmt.replace(" ", "_").replace(":", "") +
                                       ("_Part_%03d.mp4" if cuts else ".mp4"))
                 cmd = [self.ffmpeg, "-y", "-i", source]
-                if fmt == "Vertical 9:16":
+                if overlay_image_path:
+                    cmd += ["-loop", "1", "-i", overlay_image_path,
+                            "-filter_complex", vf, "-map", "[vout]"]
+                elif fmt == "Vertical 9:16":
                     cmd += ["-filter_complex", vf, "-map", "[vout]"]
                 else:
                     cmd += ["-vf", vf, "-map", "0:v:0"]
                 cmd += ["-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
                         "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart"]
+                if overlay_image_path:
+                    cmd += ["-shortest"]
                 if cuts:
                     cmd += ["-f", "segment", "-segment_times", ",".join(f"{x:.3f}" for x in cuts),
                             "-reset_timestamps", "1", "-segment_format", "mp4"]
