@@ -336,7 +336,8 @@ class App:
             rows = []
             for iid in self.tree.get_children():
                 name, status, path = self.tree.item(iid, "values")
-                rows.append({"name": name, "status": status, "path": path})
+                queued_url = next((url for url, job_iid in self.jobs if job_iid == iid), "")
+                rows.append({"name": name, "status": status, "path": path, "url": queued_url})
             data = {"output_folder": self.out, "rows": rows,
                     "status": self.status.get(), "progress": float(self.pb["value"]),
                     "stage": self.current_stage}
@@ -361,6 +362,9 @@ class App:
                 iid = self.tree.insert("", "end", values=(row.get("name", "Video"), status, path))
                 if path and os.path.isfile(path) and status not in ("Queued", "Download failed"):
                     self.files[iid] = path
+                saved_url = row.get("url", "")
+                if saved_url and status in ("Queued", "Download failed", "Interrupted — reopen to retry"):
+                    self.jobs.append((saved_url, iid))
             saved_status = data.get("status", "Previous session restored.")
             self.status.set("Previous session restored — " + saved_status)
             self.current_stage = "Previous session"
@@ -518,6 +522,10 @@ class App:
                     self.events.put(("row", iid, url[:90], "Conversion failed", source))
                     continue
                 source = converted
+                try:
+                    self.jobs.remove((url, iid))
+                except ValueError:
+                    pass
                 self.events.put(("downloaded", iid, source, os.path.basename(source)))
             self.events.put(("status", "Downloads finished. Select a video, then choose Split or Open Full Editor."))
         except Exception as exc:
