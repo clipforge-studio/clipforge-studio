@@ -62,8 +62,9 @@ The app searches beside the Python script, in an `ffmpeg\bin` subfolder, in the 
 1. Install Python 3 if it is not already installed.
 2. Download `yt-dlp.exe` from the official yt-dlp project releases.
 3. Download a trusted FFmpeg Windows build containing FFmpeg, FFprobe, and `libx264` support.
-4. Put `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside `clipforge_studio.py` (or add them to `PATH`). Keep `editor_engine.py` in the same folder as `clipforge_studio.py`.
-5. Double-click `START_APP.bat`.
+4. Keep `editor_engine.py` in the same folder as `clipforge_studio.py`.
+5. Double-click `SETUP_DEPENDENCIES.bat` once to install/update yt-dlp. FFmpeg and FFprobe must be installed and available on `PATH`, or placed beside the app.
+6. Double-click `START_APP.bat`.
 6. Add a permitted video URL and click **Download**.
 7. Select the downloaded item and choose **Split Selected**, **Timeline / Multi-Cut**, or **Open Full Editor**.
 
