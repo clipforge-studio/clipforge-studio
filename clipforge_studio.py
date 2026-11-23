@@ -1057,6 +1057,8 @@ class App:
                     "video_fade_out": video_fade_out.get(), "duration": duration,
                     "speed": speed_var.get(), "canvas_mode": canvas_mode_var.get()})
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
+                chosen_adjustments["outline"] = text_outline.get()
+                chosen_adjustments["shadow"] = text_shadow.get()
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
                                         "subtitle_position": subtitle_position.get()})
@@ -1261,6 +1263,8 @@ class App:
         overlay_color = tk.StringVar(value="white")
         overlay_background = tk.BooleanVar(value=False)
         overlay_font = tk.StringVar(value="Sans")
+        text_outline = tk.DoubleVar(value=3)
+        text_shadow = tk.DoubleVar(value=2)
         for row, (label, variable) in enumerate([("Text", overlay_text), ("Font size", overlay_size)]):
             tk.Label(overlay_tab, text=label, bg="#172235", fg="#cbd5e1").grid(
                 row=row, column=0, sticky="w", padx=14, pady=7)
@@ -1285,8 +1289,16 @@ class App:
             variable=overlay_background, bg="#172235", fg="#cbd5e1",
             selectcolor="#0b1220", activebackground="#172235").grid(
                 row=5, column=1, sticky="w", padx=14, pady=7)
+        tk.Label(overlay_tab, text="Outline width", bg="#172235", fg="#cbd5e1").grid(
+            row=6, column=0, sticky="w", padx=14, pady=5)
+        ttk.Scale(overlay_tab, from_=0, to=12, variable=text_outline,
+            orient="horizontal").grid(row=6, column=1, sticky="ew", padx=14)
+        tk.Label(overlay_tab, text="Shadow depth", bg="#172235", fg="#cbd5e1").grid(
+            row=7, column=0, sticky="w", padx=14, pady=5)
+        ttk.Scale(overlay_tab, from_=0, to=12, variable=text_shadow,
+            orient="horizontal").grid(row=7, column=1, sticky="ew", padx=14)
         tk.Label(overlay_tab, text="Text is rendered into the exported video.",
-            bg="#172235", fg="#94a3b8").grid(row=6, column=0, columnspan=2,
+            bg="#172235", fg="#94a3b8").grid(row=8, column=0, columnspan=2,
                                              sticky="w", padx=14, pady=8)
 
         overlay_image = tk.StringVar()
@@ -1294,24 +1306,24 @@ class App:
         image_scale = tk.DoubleVar(value=0.25)
         image_position = tk.StringVar(value="Bottom Right")
         image_row = tk.Frame(overlay_tab, bg="#172235")
-        image_row.grid(row=7, column=0, columnspan=2, sticky="ew", padx=14, pady=(10, 4))
+        image_row.grid(row=9, column=0, columnspan=2, sticky="ew", padx=14, pady=(10, 4))
         ttk.Entry(image_row, textvariable=overlay_image).pack(side="left", fill="x", expand=True)
         self.button(image_row, "Add PNG / Logo", lambda: overlay_image.set(
             filedialog.askopenfilename(filetypes=[("Overlay images", "*.png *.webp *.jpg *.jpeg")])
             or overlay_image.get()), "#475569").pack(side="left", padx=6)
         tk.Label(overlay_tab, text="Image position", bg="#172235", fg="#cbd5e1").grid(
-            row=8, column=0, sticky="w", padx=14, pady=6)
+            row=10, column=0, sticky="w", padx=14, pady=6)
         ttk.Combobox(overlay_tab, textvariable=image_position,
             values=["Top Left", "Top Right", "Center", "Bottom Left", "Bottom Right"],
-            state="readonly", width=18).grid(row=8, column=1, sticky="w", padx=14)
+            state="readonly", width=18).grid(row=10, column=1, sticky="w", padx=14)
         tk.Label(overlay_tab, text="Image opacity", bg="#172235", fg="#cbd5e1").grid(
-            row=9, column=0, sticky="w", padx=14, pady=6)
+            row=11, column=0, sticky="w", padx=14, pady=6)
         ttk.Scale(overlay_tab, from_=0.05, to=1, variable=image_opacity,
-            orient="horizontal").grid(row=9, column=1, sticky="ew", padx=14)
+            orient="horizontal").grid(row=11, column=1, sticky="ew", padx=14)
         tk.Label(overlay_tab, text="Image size", bg="#172235", fg="#cbd5e1").grid(
-            row=10, column=0, sticky="w", padx=14, pady=6)
+            row=12, column=0, sticky="w", padx=14, pady=6)
         ttk.Scale(overlay_tab, from_=0.05, to=1, variable=image_scale,
-            orient="horizontal").grid(row=10, column=1, sticky="ew", padx=14)
+            orient="horizontal").grid(row=12, column=1, sticky="ew", padx=14)
 
         subtitle = tk.StringVar()
         tk.Label(subtitle_tab, text="Import SRT subtitle file", bg="#172235",
@@ -1370,6 +1382,8 @@ class App:
                     "video_fade_out": video_fade_out.get(), "duration": duration,
                     "speed": speed_var.get(), "canvas_mode": canvas_mode_var.get()})
                 adjustments["subtitle_size"] = subtitle_size.get()
+                adjustments["outline"] = text_outline.get()
+                adjustments["shadow"] = text_shadow.get()
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
                     raise ValueError()
