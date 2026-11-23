@@ -24,6 +24,8 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Restore queued, failed, and interrupted download URLs so they can be retried with the **Download** button after reopening.
 - Open an in-app frame preview window with a seek slider, frame refresh, and a button to play the full video in the system media player.
 - Select Landscape, Vertical 9:16, Original, or Both for processing.
+- Export settings: 720p, 1080p, or 1440p; Draft, Standard, High, or Best quality; Original, 24, 30, or 60 FPS. Settings are saved between sessions.
+- Canvas fit modes for Landscape and Vertical: Fit, Fill, and Stretch.
 - Choose when to split after download.
 - Automatic split using a user-entered segment duration.
 - Manual time-range export using start and end timestamps.
