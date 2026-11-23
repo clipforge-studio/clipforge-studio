@@ -269,15 +269,24 @@ class App:
             stem = clean(Path(source).stem)
             folder = os.path.join(self.out, stem + "_Audio")
             os.makedirs(folder, exist_ok=True)
-            output = os.path.join(folder, stem + "_Audio_Adjusted.mp4")
-            cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
-                   "-vf", self.video_filter(self.format.get()), "-af", ",".join(filters),
-                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-                   "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
-                   "-movflags", "+faststart", output]
-            if self.run_command(cmd):
-                raise RuntimeError("FFmpeg audio export failed.")
-            self.events.put(("status", "Audio export complete: " + output))
+            selected_format = self.format.get()
+            formats = ["Landscape", "Vertical 9:16"] if selected_format == "Both" else [selected_format]
+            for fmt in formats:
+                output = os.path.join(folder, stem + "_Audio_" +
+                                      fmt.replace(" ", "_").replace(":", "") + ".mp4")
+                vf = self.video_filter(fmt)
+                cmd = [self.ffmpeg, "-y", "-i", source]
+                if fmt == "Vertical 9:16":
+                    cmd += ["-filter_complex", vf, "-map", "[vout]"]
+                else:
+                    cmd += ["-vf", vf, "-map", "0:v:0"]
+                cmd += ["-map", "0:a?", "-af", ",".join(filters),
+                        "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                        "-movflags", "+faststart", output]
+                if self.run_command(cmd):
+                    raise RuntimeError("FFmpeg audio export failed for " + fmt)
+            self.events.put(("status", "Audio export complete: " + folder))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
             self.events.put(("status", "Audio export failed. Check the log."))
