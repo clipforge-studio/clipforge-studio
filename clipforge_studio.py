@@ -1387,6 +1387,7 @@ class App:
             filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()),
             "#475569").pack(side="left", padx=6)
         caption_items = []
+        custom_caption_path = tk.StringVar()
         caption_text = tk.StringVar()
         caption_start = tk.StringVar(value="0")
         caption_end = tk.StringVar(value=str(min(2, duration)))
@@ -1437,14 +1438,26 @@ class App:
         tk.Label(subtitle_tab, text="Adding custom captions uses your caption list instead of the imported SRT for this export.",
             bg="#172235", fg="#94a3b8", wraplength=760, justify="left").pack(
                 anchor="w", padx=14, pady=(0, 4))
+        def save_custom_srt():
+            if not caption_items:
+                messagebox.showinfo(APP, "Add at least one caption before saving SRT.", parent=win)
+                return
+            path = filedialog.asksaveasfilename(defaultextension=".srt",
+                filetypes=[("SubRip subtitles", "*.srt")], initialfile="ClipForge_Captions.srt")
+            if path:
+                Path(path).write_text(build_srt_content(caption_items), encoding="utf-8")
+                custom_caption_path.set(path)
+                subtitle.set(path)
         caption_buttons = tk.Frame(subtitle_tab, bg="#172235")
         caption_buttons.pack(fill="x", padx=14, pady=4)
         self.button(caption_buttons, "＋ Add Caption", add_caption, "#0f766e").pack(side="left")
         self.button(caption_buttons, "Remove Caption", remove_caption, "#475569").pack(side="left", padx=6)
+        self.button(caption_buttons, "Save SRT", save_custom_srt, "#475569").pack(side="left")
         def resolve_subtitle_path():
             if not caption_items:
                 return subtitle.get() or None
-            custom_path = os.path.join(tempfile.gettempdir(), "clipforge_custom_captions.srt")
+            custom_path = custom_caption_path.get() or os.path.join(
+                tempfile.gettempdir(), "clipforge_custom_captions.srt")
             Path(custom_path).write_text(build_srt_content(caption_items), encoding="utf-8")
             return custom_path
         subtitle_size = tk.DoubleVar(value=28)
