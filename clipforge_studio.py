@@ -1491,7 +1491,7 @@ class App:
         subtitle_outline = tk.DoubleVar(value=2)
         subtitle_color = tk.StringVar(value="white")
         subtitle_position = tk.StringVar(value="Bottom")
-        subtitle_font = tk.StringVar(value="Arial")
+        subtitle_font = tk.StringVar(value="Nirmala UI")
         subtitle_options = tk.Frame(subtitle_tab, bg="#172235")
         subtitle_options.pack(fill="x", padx=14, pady=10)
         tk.Label(subtitle_options, text="Font size", bg="#172235", fg="#cbd5e1").grid(
