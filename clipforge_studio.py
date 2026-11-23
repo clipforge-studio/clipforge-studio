@@ -1,7 +1,7 @@
 import os, hashlib, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util, sysconfig
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
-from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph, format_srt_timestamp, build_srt_content
 
 APP = "ClipForge Studio"
 
@@ -1396,11 +1396,7 @@ class App:
                                   selectbackground="#1d4ed8", relief="flat")
         caption_list.pack(fill="x", padx=14, pady=5)
         def srt_timestamp(seconds):
-            millis = int(round(seconds * 1000))
-            hours, millis = divmod(millis, 3600000)
-            minutes, millis = divmod(millis, 60000)
-            secs, millis = divmod(millis, 1000)
-            return "{:02d}:{:02d}:{:02d},{:03d}".format(hours, minutes, secs, millis)
+            return format_srt_timestamp(seconds)
         def add_caption():
             try:
                 start_value, end_value = float(caption_start.get()), float(caption_end.get())
@@ -1433,11 +1429,7 @@ class App:
             if not caption_items:
                 return subtitle.get() or None
             custom_path = os.path.join(tempfile.gettempdir(), "clipforge_custom_captions.srt")
-            blocks = []
-            for index, (start_value, end_value, caption) in enumerate(caption_items, 1):
-                blocks.append("{}\n{} --> {}\n{}".format(
-                    index, srt_timestamp(start_value), srt_timestamp(end_value), caption))
-            Path(custom_path).write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
+            Path(custom_path).write_text(build_srt_content(caption_items), encoding="utf-8")
             return custom_path
         subtitle_size = tk.DoubleVar(value=28)
         subtitle_outline = tk.DoubleVar(value=2)
