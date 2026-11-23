@@ -16,6 +16,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Show a simple percentage and current stage in the main window; technical output is hidden unless **Advanced Log** is opened.
 - Show separate Downloading and H.264 conversion stages. FFmpeg conversion progress is read from its machine-readable progress output.
 - Stop the active FFmpeg/yt-dlp process when the app is closed and mark an in-progress task as interrupted.
+- Restore queued, failed, and interrupted download URLs so they can be retried with the **Download** button after reopening.
 - Open an in-app frame preview window with a seek slider, frame refresh, and a button to play the full video in the system media player.
 - Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Choose when to split after download.
