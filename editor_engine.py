@@ -418,9 +418,10 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         primary = subtitle_colors.get(subtitle_color, "&H00FFFFFF")
         alignment = {"Bottom": 2, "Top": 8, "Center": 5}.get(
             overlay.get("subtitle_position", "Bottom"), 2)
-        style = ("FontName=Arial,FontSize={},PrimaryColour={},OutlineColour=&H00000000,"
+        subtitle_font = str(overlay.get("subtitle_font", "Arial")).replace(",", "").replace("'", "")
+        style = ("FontName={},FontSize={},PrimaryColour={},OutlineColour=&H00000000,"
                  "BorderStyle=1,Outline={},Shadow=1,Alignment={}").format(
-                     subtitle_size, primary, subtitle_outline, alignment)
+                     subtitle_font, subtitle_size, primary, subtitle_outline, alignment)
         chain.append("subtitles='{}':force_style='{}'".format(subtitle_path, style))
 
     text = str(overlay.get("text", "")).strip()
