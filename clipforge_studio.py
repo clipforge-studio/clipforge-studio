@@ -51,57 +51,130 @@ class App:
                          font=("Segoe UI", 9, "bold"), cursor="hand2")
 
     def _build(self):
-        head = tk.Frame(self.root, bg="#111827")
-        head.pack(fill="x", padx=22, pady=(18, 10))
-        tk.Label(head, text=APP, bg="#111827", fg="white", font=("Segoe UI", 23, "bold")).pack(anchor="w")
-        tk.Label(head, text="Download first • Split when you choose • Subtitle and editing tools",
-                 bg="#111827", fg="#94a3b8", font=("Segoe UI", 10)).pack(anchor="w")
+        # ClipForge Studio v0.3 — redesigned workspace shell.
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.configure(bg="#0b1020")
 
-        panel = tk.Frame(self.root, bg="#1f2937")
-        panel.pack(fill="x", padx=22, pady=7)
-        tk.Label(panel, text="VIDEO LINK", bg="#1f2937", fg="#cbd5e1").pack(anchor="w", padx=14, pady=(12, 5))
-        row = tk.Frame(panel, bg="#1f2937")
-        row.pack(fill="x", padx=14, pady=(0, 12))
+        sidebar = tk.Frame(self.root, bg="#10182b", width=210)
+        sidebar.grid(row=0, column=0, rowspan=3, sticky="ns")
+        sidebar.grid_propagate(False)
+        brand = tk.Frame(sidebar, bg="#10182b")
+        brand.pack(fill="x", padx=18, pady=(22, 28))
+        tk.Label(brand, text="✦  CLIPFORGE", bg="#10182b", fg="#f8fafc",
+                 font=("Segoe UI", 16, "bold")).pack(anchor="w")
+        tk.Label(brand, text="STUDIO  /  CREATOR WORKSPACE", bg="#10182b", fg="#7c8ba5",
+                 font=("Segoe UI", 7, "bold")).pack(anchor="w", pady=(5, 0))
+        for label, active in [("▣   Home", True), ("↓   Downloads", False),
+                              ("✂   Split & Cut", False), ("▤   Subtitles", False),
+                              ("◈   Effects", False), ("♫   Audio", False)]:
+            tk.Label(sidebar, text=label, bg="#1d2a44" if active else "#10182b",
+                     fg="#e2e8f0" if active else "#8fa0bb", anchor="w",
+                     padx=16, pady=12, font=("Segoe UI", 10, "bold" if active else "normal")
+                     ).pack(fill="x", padx=10, pady=2)
+        tk.Frame(sidebar, bg="#25324a", height=1).pack(fill="x", padx=16, pady=18)
+        tk.Label(sidebar, text="WORKSPACE", bg="#10182b", fg="#60718d",
+                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=18)
+        tk.Label(sidebar, text="Local projects\nSaved on this device", bg="#10182b",
+                 fg="#8fa0bb", justify="left", font=("Segoe UI", 9)).pack(anchor="w", padx=18, pady=9)
+        tk.Label(sidebar, text="CLIPFORGE  •  v0.3 PREVIEW", bg="#10182b", fg="#60718d",
+                 font=("Segoe UI", 7, "bold")).pack(side="bottom", anchor="w", padx=16, pady=16)
+
+        top = tk.Frame(self.root, bg="#0b1020")
+        top.grid(row=0, column=1, sticky="ew", padx=26, pady=(20, 10))
+        tk.Label(top, text="Creator workspace", bg="#0b1020", fg="#f8fafc",
+                 font=("Segoe UI", 22, "bold")).pack(side="left")
+        tk.Label(top, text="  DOWNLOAD  •  EDIT  •  EXPORT", bg="#0b1020", fg="#8292ad",
+                 font=("Segoe UI", 8, "bold")).pack(side="left", padx=12, pady=(9, 0))
+        tk.Label(top, text="●  READY", bg="#102d2a", fg="#5eead4",
+                 font=("Segoe UI", 8, "bold"), padx=12, pady=7).pack(side="right")
+
+        content = tk.Frame(self.root, bg="#0b1020")
+        content.grid(row=1, column=1, sticky="nsew", padx=26, pady=(0, 12))
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_rowconfigure(2, weight=1)
+
+        hero = tk.Frame(content, bg="#17243b", highlightthickness=1, highlightbackground="#263956")
+        hero.grid(row=0, column=0, sticky="ew", pady=(0, 14))
+        tk.Label(hero, text="START A NEW DOWNLOAD", bg="#17243b", fg="#a5b4fc",
+                 font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=18, pady=(14, 4))
+        tk.Label(hero, text="Bring your next video into the studio.", bg="#17243b", fg="#f8fafc",
+                 font=("Segoe UI", 14, "bold")).pack(anchor="w", padx=18)
+        tk.Label(hero, text="Paste a supported video link. Download first, then choose your edit workflow.",
+                 bg="#17243b", fg="#9aabc4", font=("Segoe UI", 9)).pack(anchor="w", padx=18, pady=(3, 12))
+        linkrow = tk.Frame(hero, bg="#17243b")
+        linkrow.pack(fill="x", padx=18, pady=(0, 16))
         self.url = tk.StringVar()
-        tk.Entry(row, textvariable=self.url, bg="#0f172a", fg="white", insertbackground="white",
-                 relief="flat", font=("Segoe UI", 11)).pack(side="left", fill="x", expand=True, ipady=9, padx=(0, 7))
-        self.button(row, "Paste", self.paste, "#475569").pack(side="left")
-        row = tk.Frame(panel, bg="#1f2937")
-        row.pack(fill="x", padx=14, pady=(0, 13))
-        self.button(row, "Add to Queue", self.add).pack(side="left")
-        self.button(row, "Download", self.download, "#15803d").pack(side="left", padx=7)
-        self.button(row, "Clear Queue", self.clear, "#475569").pack(side="left")
+        tk.Entry(linkrow, textvariable=self.url, bg="#0b1427", fg="#f8fafc",
+                 insertbackground="white", relief="flat", font=("Segoe UI", 11),
+                 highlightthickness=1, highlightbackground="#344765"
+                 ).pack(side="left", fill="x", expand=True, ipady=11, padx=(0, 8))
+        self.button(linkrow, "Paste link", self.paste, "#344765").pack(side="left", padx=(0, 7))
+        self.button(linkrow, "＋  Add to Queue", self.add, "#344765").pack(side="left", padx=(0, 7))
+        self.button(linkrow, "↓  Download", self.download, "#0e9f83").pack(side="left")
 
-        bar = tk.Frame(self.root, bg="#111827")
-        bar.pack(fill="x", padx=22, pady=9)
-        tk.Label(bar, text="OUTPUT FORMAT", bg="#111827", fg="#cbd5e1").pack(side="left")
-        self.format_box = ttk.Combobox(bar, textvariable=self.format, values=["Landscape", "Vertical 9:16", "Original", "Both"], state="readonly", width=18)
-        self.format_box.pack(side="left", padx=9)
-        self.button(bar, "Change Output Folder", self.change, "#475569").pack(side="right")
-        self.folder_label = tk.Label(self.root, text="Output: " + self.out, bg="#111827", fg="#94a3b8", anchor="w")
-        self.folder_label.pack(fill="x", padx=22)
+        tools = tk.Frame(content, bg="#0b1020")
+        tools.grid(row=1, column=0, sticky="ew", pady=(0, 14))
+        for col in range(4):
+            tools.grid_columnconfigure(col, weight=1)
+        cards = [
+            ("01  SPLIT & CUT", "Choose part duration or custom ranges", "Split Selected", self.split_dialog, "#7058d8"),
+            ("02  EDITOR", "Subtitles, titles and visual filters", "Open Editor", self.editor_dialog, "#087f80"),
+            ("03  TIMELINE", "Create multiple clips from cut points", "Open Timeline", self.timeline_dialog, "#a052b5"),
+            ("04  PREVIEW", "Open the selected downloaded video", "Preview Video", self.preview, "#344765"),
+        ]
+        for i, (title, desc, action, callback, color) in enumerate(cards):
+            card = tk.Frame(tools, bg="#131e32", highlightthickness=1, highlightbackground="#253550")
+            card.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else 8, 0))
+            tk.Label(card, text=title, bg="#131e32", fg="#c4b5fd",
+                     font=("Segoe UI", 8, "bold")).pack(anchor="w", padx=12, pady=(12, 4))
+            tk.Label(card, text=desc, bg="#131e32", fg="#91a2bd", wraplength=155,
+                     justify="left", font=("Segoe UI", 8)).pack(anchor="w", padx=12, pady=(0, 9))
+            self.button(card, action, callback, color).pack(anchor="w", padx=12, pady=(0, 12))
 
-        tk.Label(self.root, text="DOWNLOAD LIBRARY — select a completed video to split or edit",
-                 bg="#111827", fg="#cbd5e1").pack(anchor="w", padx=22, pady=(14, 5))
-        self.tree = ttk.Treeview(self.root, columns=("name", "status", "file"), show="headings", height=9)
-        self.tree.heading("name", text="Video")
-        self.tree.heading("status", text="Status")
-        self.tree.heading("file", text="Saved file")
-        self.tree.column("name", width=340)
-        self.tree.column("status", width=130)
-        self.tree.column("file", width=500)
-        self.tree.pack(fill="both", expand=True, padx=22)
-        actions = tk.Frame(self.root, bg="#111827")
-        actions.pack(fill="x", padx=22, pady=10)
-        self.button(actions, "Split Selected", self.split_dialog, "#7c3aed").pack(side="left")
-        self.button(actions, "Subtitle & Effects Editor", self.editor_dialog, "#0f766e").pack(side="left", padx=7)
-        self.button(actions, "Timeline / Multi-Cut", self.timeline_dialog, "#9333ea").pack(side="left", padx=7)
-        self.button(actions, "Preview Video", self.preview, "#475569").pack(side="left")
-        self.pb = ttk.Progressbar(self.root, maximum=100)
-        self.pb.pack(fill="x", padx=22, pady=(3, 7))
-        tk.Label(self.root, textvariable=self.status, bg="#111827", fg="#cbd5e1", anchor="w").pack(fill="x", padx=22)
-        self.log = tk.Text(self.root, height=6, bg="#0b1220", fg="#94a3b8", font=("Consolas", 8), state="disabled")
-        self.log.pack(fill="x", padx=22, pady=(8, 14))
+        library = tk.Frame(content, bg="#131e32", highlightthickness=1, highlightbackground="#253550")
+        library.grid(row=2, column=0, sticky="nsew")
+        library.grid_columnconfigure(0, weight=1)
+        library.grid_rowconfigure(1, weight=1)
+        libhead = tk.Frame(library, bg="#131e32")
+        libhead.grid(row=0, column=0, sticky="ew", padx=15, pady=(12, 8))
+        tk.Label(libhead, text="YOUR DOWNLOAD LIBRARY", bg="#131e32", fg="#f1f5f9",
+                 font=("Segoe UI", 10, "bold")).pack(side="left")
+        tk.Label(libhead, text="Select a completed video to edit", bg="#131e32", fg="#8192ad",
+                 font=("Segoe UI", 8)).pack(side="left", padx=10)
+        self.button(libhead, "Clear Queue", self.clear, "#344765").pack(side="right")
+        self.tree = ttk.Treeview(library, columns=("name", "status", "file"), show="headings", height=7)
+        self.tree.heading("name", text="VIDEO")
+        self.tree.heading("status", text="STATUS")
+        self.tree.heading("file", text="LOCAL FILE")
+        self.tree.column("name", width=250)
+        self.tree.column("status", width=115)
+        self.tree.column("file", width=430)
+        self.tree.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 12))
+
+        bottom = tk.Frame(self.root, bg="#0b1020")
+        bottom.grid(row=2, column=1, sticky="ew", padx=26, pady=(0, 16))
+        fmt = tk.Frame(bottom, bg="#0b1020")
+        fmt.pack(fill="x", pady=(0, 7))
+        tk.Label(fmt, text="EXPORT CANVAS", bg="#0b1020", fg="#8292ad",
+                 font=("Segoe UI", 8, "bold")).pack(side="left")
+        self.format = tk.StringVar(value="Landscape")
+        self.format_box = ttk.Combobox(fmt, textvariable=self.format,
+            values=["Landscape", "Vertical 9:16", "Original", "Both"],
+            state="readonly", width=17)
+        self.format_box.pack(side="left", padx=10)
+        self.button(fmt, "Output folder", self.change, "#344765").pack(side="right")
+        self.folder_label = tk.Label(bottom, text="Output: " + self.out, bg="#0b1020",
+                                      fg="#71829d", anchor="w", font=("Segoe UI", 8))
+        self.folder_label.pack(fill="x")
+        self.pb = ttk.Progressbar(bottom, maximum=100)
+        self.pb.pack(fill="x", pady=(8, 5))
+        self.status = tk.StringVar(value="Ready — download a video, then open an editing tool.")
+        tk.Label(bottom, textvariable=self.status, bg="#0b1020", fg="#a5b4fc",
+                 anchor="w", font=("Segoe UI", 8)).pack(fill="x")
+        self.log = tk.Text(bottom, height=3, bg="#080d18", fg="#8494ad",
+                           font=("Consolas", 8), state="disabled", relief="flat")
+        self.log.pack(fill="x", pady=(7, 0))
 
     def paste(self):
         try:
