@@ -80,11 +80,13 @@ class FilterCatalogTests(unittest.TestCase):
     def test_subtitle_style_is_applied(self):
         graph = build_filter_chain("Original", "Original",
             {"subtitle_size": 36, "subtitle_outline": 4},
-            {"subtitle_color": "yellow", "subtitle_position": "Top"},
+            {"subtitle_color": "yellow", "subtitle_position": "Top",
+             "subtitle_font": "Nirmala UI"},
             subtitle="captions.srt")
         self.assertIn("FontSize=36", graph)
         self.assertIn("PrimaryColour=&H0000FFFF", graph)
         self.assertIn("Alignment=8", graph)
+        self.assertIn("FontName=Nirmala UI", graph)
 
     def test_audio_mix_graph_includes_original_and_music(self):
         graph = build_audio_mix_graph(True, 0.8, 0.35, 1.5, 2, 30, 0.5, 1.25)
