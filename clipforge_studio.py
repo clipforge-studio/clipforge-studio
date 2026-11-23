@@ -1069,7 +1069,9 @@ class App:
             try:
                 chosen_overlay = {"text": overlay_text.get(), "text_size": int(overlay_size.get()),
                     "position": overlay_position.get(), "color": overlay_color.get(),
-                    "background": overlay_background.get(), "font": overlay_font.get()}
+                    "background": overlay_background.get(), "font": overlay_font.get(),
+                    "image_position": image_position.get(),
+                    "text_start": float(overlay_start.get()), "text_end": float(overlay_end.get())}
                 chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
                 chosen_adjustments.update({"rotation": rotation_var.get(),
                     "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
@@ -1328,6 +1330,8 @@ class App:
         image_opacity = tk.DoubleVar(value=0.85)
         image_scale = tk.DoubleVar(value=0.25)
         image_position = tk.StringVar(value="Bottom Right")
+        overlay_start = tk.StringVar(value="0")
+        overlay_end = tk.StringVar(value=f"{duration:.2f}")
         image_row = tk.Frame(overlay_tab, bg="#172235")
         image_row.grid(row=9, column=0, columnspan=2, sticky="ew", padx=14, pady=(10, 4))
         ttk.Entry(image_row, textvariable=overlay_image).pack(side="left", fill="x", expand=True)
@@ -1347,6 +1351,14 @@ class App:
             row=12, column=0, sticky="w", padx=14, pady=6)
         ttk.Scale(overlay_tab, from_=0.05, to=1, variable=image_scale,
             orient="horizontal").grid(row=12, column=1, sticky="ew", padx=14)
+        tk.Label(overlay_tab, text="Overlay start (seconds)", bg="#172235", fg="#cbd5e1").grid(
+            row=13, column=0, sticky="w", padx=14, pady=6)
+        ttk.Entry(overlay_tab, textvariable=overlay_start, width=18).grid(
+            row=13, column=1, sticky="w", padx=14)
+        tk.Label(overlay_tab, text="Overlay end (seconds)", bg="#172235", fg="#cbd5e1").grid(
+            row=14, column=0, sticky="w", padx=14, pady=6)
+        ttk.Entry(overlay_tab, textvariable=overlay_end, width=18).grid(
+            row=14, column=1, sticky="w", padx=14)
 
         subtitle = tk.StringVar()
         tk.Label(subtitle_tab, text="Import SRT subtitle file", bg="#172235",
@@ -1410,12 +1422,19 @@ class App:
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
                     raise ValueError()
+                overlay_start_value = float(overlay_start.get())
+                overlay_end_value = float(overlay_end.get())
+                if overlay_start_value < 0 or overlay_end_value <= overlay_start_value or overlay_end_value > duration:
+                    raise ValueError()
+                adjustments["overlay_start"] = overlay_start_value
+                adjustments["overlay_end"] = overlay_end_value
                 adjustments["overlay_opacity"] = image_opacity.get()
                 adjustments["overlay_scale"] = image_scale.get()
                 overlay = {"text": overlay_text.get(), "text_size": font_size,
                            "position": overlay_position.get(), "color": overlay_color.get(),
                            "background": overlay_background.get(), "font": overlay_font.get(),
                            "image_position": image_position.get(), "image": overlay_image.get() or None,
+                           "text_start": overlay_start_value, "text_end": overlay_end_value,
                            "subtitle_color": subtitle_color.get(),
                            "subtitle_position": subtitle_position.get()}
             except Exception:
