@@ -932,7 +932,47 @@ class App:
         tk.Label(info, textvariable=current, bg="#1f2937", fg="#22c55e",
                  font=("Consolas", 11, "bold")).pack(side="left", padx=7)
         self.button(info, "Undo Last Cut", lambda: (cuts.pop() if cuts else None, redraw()), "#475569").pack(side="right")
-        self.button(info, "Preview Video", lambda: os.startfile(source), "#475569").pack(side="right", padx=6)
+        self.button(info, "Preview Current Look", lambda: preview_current_look(), "#0f766e").pack(side="right", padx=6)
+        preview_frame = tk.Frame(win, bg="#0b1220", height=150)
+        preview_frame.pack(fill="x", padx=18, pady=(4, 8))
+        preview_frame.pack_propagate(False)
+        preview_image_label = tk.Label(preview_frame, text="Choose a filter or adjustment, then preview your look.",
+                                       bg="#0b1220", fg="#94a3b8")
+        preview_image_label.pack(expand=True)
+        preview_png = os.path.join(tempfile.gettempdir(), "clipforge_editor_preview.png")
+        def preview_current_look():
+            if not self.ffmpeg:
+                self.ffmpeg = locate("ffmpeg")
+            if not self.ffmpeg:
+                messagebox.showerror(APP, "FFmpeg is required for preview.", parent=win)
+                return
+            try:
+                chosen_overlay = {"text": overlay_text.get(), "text_size": int(overlay_size.get()),
+                    "position": overlay_position.get(), "color": overlay_color.get(),
+                    "background": overlay_background.get(), "font": overlay_font.get()}
+                chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                graph = self.video_filter(self.format.get() if self.format.get() != "Both" else "Landscape",
+                    effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
+                    subtitle.get() or None, chosen_adjustments, chosen_overlay)
+                if graph.endswith("[vout]"):
+                    graph = graph[:-6] + ",scale=800:450:force_original_aspect_ratio=decrease[vpreview]"
+                    cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
+                           str(playhead[0]), "-i", source, "-filter_complex", graph,
+                           "-map", "[vpreview]", "-frames:v", "1", preview_png]
+                else:
+                    graph += ",scale=800:450:force_original_aspect_ratio=decrease"
+                    cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
+                           str(playhead[0]), "-i", source, "-vf", graph, "-frames:v", "1", preview_png]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=45,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                if result.returncode or not os.path.isfile(preview_png):
+                    raise RuntimeError(result.stderr[-1200:] or "Preview frame could not be created.")
+                photo = tk.PhotoImage(file=preview_png)
+                preview_image_label.config(image=photo, text="")
+                preview_image_label.image = photo
+            except Exception as exc:
+                preview_image_label.config(image="", text="Preview failed: " + str(exc))
+                preview_image_label.image = None
 
         tk.Label(win, text="CREATOR TOOLS", bg="#1f2937", fg="#cbd5e1",
                  font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 5))
