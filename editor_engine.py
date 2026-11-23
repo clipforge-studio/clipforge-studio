@@ -233,6 +233,31 @@ FILTER_CATEGORIES = {
     }
 }
 
+
+def build_audio_mix_graph(has_source_audio=True, source_volume=1.0, music_volume=0.35,
+                          fade_in=0, fade_out=0, duration=0):
+    def bounded(value, low, high, default):
+        try:
+            return max(low, min(high, float(value)))
+        except (TypeError, ValueError):
+            return default
+    source_volume = bounded(source_volume, 0, 2, 1)
+    music_volume = bounded(music_volume, 0, 2, 0.35)
+    fade_in = bounded(fade_in, 0, 3600, 0)
+    fade_out = bounded(fade_out, 0, 3600, 0)
+    duration = bounded(duration, 0, 86400, 0)
+    if not has_source_audio:
+        return "[1:a]volume={:.3f}[aout]".format(music_volume)
+    source_chain = "volume={:.3f}".format(source_volume)
+    if fade_in:
+        source_chain += ",afade=t=in:st=0:d={:.3f}".format(fade_in)
+    if fade_out and duration:
+        source_chain += ",afade=t=out:st={:.3f}:d={:.3f}".format(
+            max(0, duration-fade_out), min(fade_out, duration))
+    return ("[0:a]{}[a0];[1:a]volume={:.3f}[a1];"
+            "[a0][a1]amix=inputs=2:duration=longest:dropout_transition=2[aout]"
+            ).format(source_chain, music_volume)
+
 def filter_names():
     return {category: list(filters.keys()) for category, filters in FILTER_CATEGORIES.items()}
 
