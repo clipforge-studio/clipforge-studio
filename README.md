@@ -38,7 +38,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Import SRT or author multiple captions in-app with per-caption start/end times; burn them in with adjustable font size, color, outline, and alignment.
 - Image-frame preview that renders the selected filter, adjustments, text, subtitle, and logo overlay before export.
 - Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, vertical flip, playback speed, video fade-in/out, and canvas fit/fill/stretch.
-- Audio tools: original audio volume, fade-in/out, and optional looping background music mixed with the source audio.
+- Audio tools: original audio volume, fade-in/out, and optional looping background music mixed with the source audio, with independent music fade-in/fade-out controls.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
 ### Known limitations
