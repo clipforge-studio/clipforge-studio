@@ -425,7 +425,7 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
             "Bottom Right": ("W-w-30", "H-h-30")
         }
         x, y = positions.get(placement, positions["Bottom Right"])
-        base = chain[0] + "," + ",".join(chain[1:]) if fmt == "Vertical 9:16" else "[0:v]," + ",".join(chain)
+        base = chain[0] + "," + ",".join(chain[1:]) if fmt == "Vertical 9:16" else "[0:v]" + ",".join(chain)
         return (base + "[vbase];[1:v]format=rgba,colorchannelmixer=aa={:.3f},"
                 "scale=iw*{:.3f}:ih*{:.3f}[ov];[vbase][ov]overlay=x={}:y={}:shortest=1[vout]"
                 ).format(opacity, scale, scale, x, y)
