@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph, build_srt_content
 
 ffmpeg = shutil.which("ffmpeg")
 if not ffmpeg:
@@ -143,7 +143,7 @@ if result.returncode:
 import tempfile
 from pathlib import Path
 subtitle_file = Path(tempfile.gettempdir()) / "clipforge_smoke.srt"
-subtitle_file.write_text("1\n00:00:00,000 --> 00:00:01,000\nClipForge subtitle test\n", encoding="utf-8")
+subtitle_file.write_text(build_srt_content([(0, 1, "ClipForge subtitle test")]), encoding="utf-8")
 subtitle_graph = build_filter_chain("Landscape", "Original",
     {"subtitle_size": 26, "subtitle_outline": 2},
     {"subtitle_color": "yellow", "subtitle_position": "Bottom"},
