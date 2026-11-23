@@ -1,7 +1,7 @@
 import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
-from editor_engine import FILTER_CATEGORIES, build_filter_chain
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
 
 APP = "ClipForge Studio"
 
@@ -327,19 +327,9 @@ class App:
                         "-of", "csv=p=0", source], capture_output=True, text=True,
                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                     has_audio = bool(probe.stdout.strip())
-                    graph_parts = [video_graph]
-                    if has_audio:
-                        original_audio = "volume={:.3f}".format(volume)
-                        if fade_in > 0:
-                            original_audio += ",afade=t=in:st=0:d={:.3f}".format(fade_in)
-                        if fade_out > 0:
-                            original_audio += ",afade=t=out:st={:.3f}:d={:.3f}".format(
-                                max(0, duration-fade_out), fade_out)
-                        graph_parts.append("[0:a]" + original_audio + "[a0]")
-                        graph_parts.append("[1:a]volume={:.3f}[a1]".format(music_volume))
-                        graph_parts.append("[a0][a1]amix=inputs=2:duration=longest:dropout_transition=2[aout]")
-                    else:
-                        graph_parts.append("[1:a]volume={:.3f}[aout]".format(music_volume))
+                    graph_parts = [video_graph,
+                        build_audio_mix_graph(has_audio, volume, music_volume,
+                                              fade_in, fade_out, duration)]
                     cmd += ["-filter_complex", ";".join(graph_parts),
                             "-map", "[vout]", "-map", "[aout]", "-shortest"]
                 else:
