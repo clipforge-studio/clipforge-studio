@@ -1372,6 +1372,72 @@ class App:
         self.button(subrow, "Browse SRT", lambda: subtitle.set(
             filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()),
             "#475569").pack(side="left", padx=6)
+        caption_items = []
+        caption_text = tk.StringVar()
+        caption_start = tk.StringVar(value="0")
+        caption_end = tk.StringVar(value=str(min(2, duration)))
+        caption_form = tk.Frame(subtitle_tab, bg="#172235")
+        caption_form.pack(fill="x", padx=14, pady=(12, 4))
+        tk.Label(caption_form, text="New caption", bg="#172235", fg="#cbd5e1").grid(
+            row=0, column=0, sticky="w", padx=4)
+        ttk.Entry(caption_form, textvariable=caption_text, width=34).grid(
+            row=0, column=1, sticky="ew", padx=4)
+        tk.Label(caption_form, text="Start sec", bg="#172235", fg="#cbd5e1").grid(
+            row=1, column=0, sticky="w", padx=4, pady=4)
+        ttk.Entry(caption_form, textvariable=caption_start, width=12).grid(
+            row=1, column=1, sticky="w", padx=4)
+        tk.Label(caption_form, text="End sec", bg="#172235", fg="#cbd5e1").grid(
+            row=1, column=2, sticky="w", padx=4)
+        ttk.Entry(caption_form, textvariable=caption_end, width=12).grid(
+            row=1, column=3, sticky="w", padx=4)
+        caption_form.grid_columnconfigure(1, weight=1)
+        caption_list = tk.Listbox(subtitle_tab, height=4, bg="#0b1220", fg="#e2e8f0",
+                                  selectbackground="#1d4ed8", relief="flat")
+        caption_list.pack(fill="x", padx=14, pady=5)
+        def srt_timestamp(seconds):
+            millis = int(round(seconds * 1000))
+            hours, millis = divmod(millis, 3600000)
+            minutes, millis = divmod(millis, 60000)
+            secs, millis = divmod(millis, 1000)
+            return "{:02d}:{:02d}:{:02d},{:03d}".format(hours, minutes, secs, millis)
+        def add_caption():
+            try:
+                start_value, end_value = float(caption_start.get()), float(caption_end.get())
+                caption = caption_text.get().strip()
+                if not caption or start_value < 0 or end_value <= start_value or end_value > duration:
+                    raise ValueError()
+                caption_items.append((start_value, end_value, caption))
+                caption_items.sort(key=lambda item: item[0])
+                caption_list.delete(0, "end")
+                for index, (start_value, end_value, caption) in enumerate(caption_items, 1):
+                    caption_list.insert("end", "{:02d}  {} → {}  {}".format(
+                        index, srt_timestamp(start_value), srt_timestamp(end_value), caption))
+                caption_text.set("")
+            except Exception:
+                messagebox.showerror(APP, "Enter caption text and a valid start/end range.", parent=win)
+        def remove_caption():
+            selected = caption_list.curselection()
+            if selected:
+                del caption_items[selected[0]]
+                caption_list.delete(selected[0])
+                caption_list.delete(0, "end")
+                for index, (start_value, end_value, caption) in enumerate(caption_items, 1):
+                    caption_list.insert("end", "{:02d}  {} → {}  {}".format(
+                        index, srt_timestamp(start_value), srt_timestamp(end_value), caption))
+        caption_buttons = tk.Frame(subtitle_tab, bg="#172235")
+        caption_buttons.pack(fill="x", padx=14, pady=4)
+        self.button(caption_buttons, "＋ Add Caption", add_caption, "#0f766e").pack(side="left")
+        self.button(caption_buttons, "Remove Caption", remove_caption, "#475569").pack(side="left", padx=6)
+        def resolve_subtitle_path():
+            if not caption_items:
+                return subtitle.get() or None
+            custom_path = os.path.join(tempfile.gettempdir(), "clipforge_custom_captions.srt")
+            blocks = []
+            for index, (start_value, end_value, caption) in enumerate(caption_items, 1):
+                blocks.append("{}\n{} --> {}\n{}".format(
+                    index, srt_timestamp(start_value), srt_timestamp(end_value), caption))
+            Path(custom_path).write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
+            return custom_path
         subtitle_size = tk.DoubleVar(value=28)
         subtitle_outline = tk.DoubleVar(value=2)
         subtitle_color = tk.StringVar(value="white")
