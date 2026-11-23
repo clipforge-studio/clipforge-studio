@@ -202,6 +202,8 @@ def escape_drawtext(value):
 
 def build_filter_chain(fmt="Original", preset="Original", adjustments=None, overlay=None, subtitle=None):
     adjustments = adjustments or {}
+    if preset in (None, "", "None"):
+        preset = "Original"
     overlay = overlay or {}
     chain = []
     if fmt == "Vertical 9:16":
