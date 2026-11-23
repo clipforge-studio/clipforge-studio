@@ -37,6 +37,9 @@ class App:
         self.active_process = None
         self.closing = False
         self.out = str(Path.home() / "Downloads")
+        self.export_quality = "High"
+        self.export_fps = "Original"
+        self.export_resolution = "1080p"
         self.state_dir = Path(os.environ.get("APPDATA", str(Path.home()))) / "ClipForgeStudio"
         self.state_file = self.state_dir / "session.json"
         self.current_stage = "Ready"
@@ -192,6 +195,30 @@ class App:
             values=["Landscape", "Vertical 9:16", "Original", "Both"],
             state="readonly", width=17)
         self.format_box.pack(side="left", padx=10)
+        tk.Label(fmt, text="RESOLUTION", bg="#0b1020", fg="#8292ad",
+                 font=("Segoe UI", 8, "bold")).pack(side="left", padx=(12, 4))
+        self.resolution_box = ttk.Combobox(fmt, values=["720p", "1080p", "1440p"],
+            state="readonly", width=8)
+        self.resolution_box.set(self.export_resolution)
+        self.resolution_box.pack(side="left", padx=4)
+        self.resolution_box.bind("<<ComboboxSelected>>",
+            lambda _e: setattr(self, "export_resolution", self.resolution_box.get()))
+        tk.Label(fmt, text="QUALITY", bg="#0b1020", fg="#8292ad",
+                 font=("Segoe UI", 8, "bold")).pack(side="left", padx=(10, 4))
+        self.quality_box = ttk.Combobox(fmt, values=["Draft", "Standard", "High", "Best"],
+            state="readonly", width=10)
+        self.quality_box.set(self.export_quality)
+        self.quality_box.pack(side="left", padx=4)
+        self.quality_box.bind("<<ComboboxSelected>>",
+            lambda _e: setattr(self, "export_quality", self.quality_box.get()))
+        tk.Label(fmt, text="FPS", bg="#0b1020", fg="#8292ad",
+                 font=("Segoe UI", 8, "bold")).pack(side="left", padx=(10, 4))
+        self.fps_box = ttk.Combobox(fmt, values=["Original", "24", "30", "60"],
+            state="readonly", width=9)
+        self.fps_box.set(self.export_fps)
+        self.fps_box.pack(side="left", padx=4)
+        self.fps_box.bind("<<ComboboxSelected>>",
+            lambda _e: setattr(self, "export_fps", self.fps_box.get()))
         self.button(fmt, "Output folder", self.change, "#344765").pack(side="right")
         self.folder_label = tk.Label(bottom, text="Output: " + self.out, bg="#0b1020",
                                       fg="#71829d", anchor="w", font=("Segoe UI", 8))
@@ -208,6 +235,14 @@ class App:
                            font=("Consolas", 8), state="disabled", relief="flat")
         self.log.pack(fill="x", pady=(7, 0))
         self.log.pack_forget()
+
+    def encoding_args(self):
+        crf = {"Draft": "28", "Standard": "23", "High": "20", "Best": "17"}.get(
+            self.export_quality, "20")
+        args = ["-preset", "veryfast", "-crf", crf, "-pix_fmt", "yuv420p"]
+        if self.export_fps in ("24", "30", "60"):
+            args += ["-r", self.export_fps]
+        return args
 
     def go_home(self):
         self.url_entry_focus()
@@ -736,7 +771,9 @@ class App:
                      subtitle=None, adjustments=None, overlay=None, overlay_image=None):
         if overlay is None:
             overlay = {"text": text, "text_size": font_size, "position": position}
-        return build_filter_chain(fmt, effect or "Original", adjustments, overlay, subtitle, overlay_image)
+        settings = dict(adjustments or {})
+        settings.setdefault("resolution", self.export_resolution)
+        return build_filter_chain(fmt, effect or "Original", settings, overlay, subtitle, overlay_image)
 
     def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
