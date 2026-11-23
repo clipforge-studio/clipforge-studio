@@ -234,6 +234,27 @@ FILTER_CATEGORIES = {
 }
 
 
+
+def format_srt_timestamp(seconds):
+    millis = int(round(float(seconds) * 1000))
+    hours, millis = divmod(millis, 3600000)
+    minutes, millis = divmod(millis, 60000)
+    secs, millis = divmod(millis, 1000)
+    return "{:02d}:{:02d}:{:02d},{:03d}".format(hours, minutes, secs, millis)
+
+
+def build_srt_content(captions):
+    ordered = sorted(captions, key=lambda item: float(item[0]))
+    blocks = []
+    for index, (start, end, text) in enumerate(ordered, 1):
+        start, end = float(start), float(end)
+        caption = str(text).strip()
+        if start < 0 or end <= start or not caption:
+            raise ValueError("Each caption needs text and a valid start/end range.")
+        blocks.append("{}\n{} --> {}\n{}".format(
+            index, format_srt_timestamp(start), format_srt_timestamp(end), caption))
+    return "\n\n".join(blocks) + ("\n" if blocks else "")
+
 def build_audio_mix_graph(has_source_audio=True, source_volume=1.0, music_volume=0.35,
                           fade_in=0, fade_out=0, duration=0):
     def bounded(value, low, high, default):
