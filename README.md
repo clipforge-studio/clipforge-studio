@@ -12,6 +12,11 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Save the finished H.264 MP4 directly inside the selected output folder (not buried in the temporary work directory), then automatically select it in the Video Library.
 - Convert downloaded AV1/VP9 videos to H.264 + AAC MP4 for improved Windows playback compatibility.
 - Import existing local video files from your computer, as well as download supported URLs.
+- Scan a selected folder (including subfolders) to add existing videos to the library, while skipping the temporary download-work directory.
+- Open the selected output folder directly from the main workspace.
+- Automatically add Split, Timeline, Editor, and Audio exports to the Video Library when processing finishes.
+- Avoid silently overwriting a previously downloaded H.264 file when another video has the same title.
+- Save newly queued URLs and output-folder changes immediately so they survive an unexpected app close.
 - Restore the video library, output folder, last status, and last progress stage after closing and reopening the app.
 - Show a simple percentage and current stage in the main window; technical output is hidden unless **Advanced Log** is opened.
 - Show separate Downloading and H.264 conversion stages. FFmpeg conversion progress is read from its machine-readable progress output.
