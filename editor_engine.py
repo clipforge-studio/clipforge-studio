@@ -301,7 +301,21 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         chain.append("gblur=sigma={:.3f}".format(blur))
 
     if subtitle:
-        chain.append("subtitles='" + str(subtitle).replace("\\", "/").replace(":", "\\:").replace("'", "\\'") + "'")
+        subtitle_path = str(subtitle).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+        subtitle_size = int(number("subtitle_size", 28, 10, 72))
+        subtitle_outline = int(number("subtitle_outline", 2, 0, 8))
+        subtitle_color = str(overlay.get("subtitle_color", "white"))
+        subtitle_colors = {
+            "white": "&H00FFFFFF", "yellow": "&H0000FFFF", "cyan": "&H00FFFF00",
+            "red": "&H000000FF", "green": "&H0000FF00"
+        }
+        primary = subtitle_colors.get(subtitle_color, "&H00FFFFFF")
+        alignment = {"Bottom": 2, "Top": 8, "Center": 5}.get(
+            overlay.get("subtitle_position", "Bottom"), 2)
+        style = ("FontName=Arial,FontSize={},PrimaryColour={},OutlineColour=&H00000000,"
+                 "BorderStyle=1,Outline={},Shadow=1,Alignment={}").format(
+                     subtitle_size, primary, subtitle_outline, alignment)
+        chain.append("subtitles='{}':force_style='{}'".format(subtitle_path, style))
 
     text = str(overlay.get("text", "")).strip()
     if text:
