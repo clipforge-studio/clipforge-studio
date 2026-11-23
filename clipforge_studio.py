@@ -1094,7 +1094,8 @@ class App:
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
                            str(playhead[0]), "-i", source]
                     if overlay_image.get():
-                        cmd += ["-loop", "1", "-i", overlay_image.get()]
+                        loop_args = ["-stream_loop", "-1"] if Path(overlay_image.get()).suffix.lower() == ".gif" else ["-loop", "1"]
+                        cmd += loop_args + ["-i", overlay_image.get()]
                     cmd += ["-filter_complex", graph, "-map", "[vpreview]", "-frames:v", "1", preview_png]
                 else:
                     graph += ",scale=800:450:force_original_aspect_ratio=decrease"
@@ -1338,7 +1339,7 @@ class App:
         image_row.grid(row=9, column=0, columnspan=2, sticky="ew", padx=14, pady=(10, 4))
         ttk.Entry(image_row, textvariable=overlay_image).pack(side="left", fill="x", expand=True)
         self.button(image_row, "Add PNG / Logo", lambda: overlay_image.set(
-            filedialog.askopenfilename(filetypes=[("Overlay images", "*.png *.webp *.jpg *.jpeg")])
+            filedialog.askopenfilename(filetypes=[("Overlay images", "*.png *.webp *.jpg *.jpeg *.gif")])
             or overlay_image.get()), "#475569").pack(side="left", padx=6)
         tk.Label(overlay_tab, text="Image position", bg="#172235", fg="#cbd5e1").grid(
             row=10, column=0, sticky="w", padx=14, pady=6)
@@ -1473,7 +1474,8 @@ class App:
                                       ("_Part_%03d.mp4" if cuts else ".mp4"))
                 cmd = [self.ffmpeg, "-y", "-i", source]
                 if overlay_image_path:
-                    cmd += ["-loop", "1", "-i", overlay_image_path,
+                    loop_args = ["-stream_loop", "-1"] if Path(overlay_image_path).suffix.lower() == ".gif" else ["-loop", "1"]
+                    cmd += loop_args + ["-i", overlay_image_path,
                             "-filter_complex", vf, "-map", "[vout]"]
                 elif fmt == "Vertical 9:16":
                     cmd += ["-filter_complex", vf, "-map", "[vout]"]
