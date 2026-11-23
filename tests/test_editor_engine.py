@@ -1,6 +1,6 @@
 import unittest
 
-from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names, build_audio_mix_graph
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names, build_audio_mix_graph, build_srt_content
 
 
 class FilterCatalogTests(unittest.TestCase):
@@ -107,6 +107,19 @@ class FilterCatalogTests(unittest.TestCase):
             {"image_position": "Center"}, overlay_image="logo.png")
         self.assertIn("enable='between(t,2.000,5.000)'", text_graph)
         self.assertIn("enable='between(t,2.000,5.000)'", image_graph)
+
+    def test_srt_caption_authoring_and_order(self):
+        content = build_srt_content([
+            (2.5, 4.0, "Second caption"),
+            (0, 2.25, "First caption"),
+        ])
+        self.assertIn("00:00:00,000 --> 00:00:02,250", content)
+        self.assertIn("00:00:02,500 --> 00:00:04,000", content)
+        self.assertLess(content.index("First caption"), content.index("Second caption"))
+
+    def test_srt_rejects_invalid_caption_ranges(self):
+        with self.assertRaises(ValueError):
+            build_srt_content([(2, 1, "Bad timing")])
 
     def test_unknown_preset_is_rejected(self):
         with self.assertRaises(ValueError):
