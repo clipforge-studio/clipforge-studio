@@ -294,6 +294,9 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
             value = default
         return max(low, min(high, value))
 
+    speed = number("speed", 1, 0.5, 2)
+    if abs(speed - 1) > 0.0001:
+        chain.append("setpts=PTS/{:.4f}".format(speed))
     brightness = number("brightness", 0, -1, 1)
     contrast = number("contrast", 1, 0, 3)
     saturation = number("saturation", 1, 0, 3)
@@ -315,6 +318,8 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
     fade_in = number("video_fade_in", 0, 0, 10)
     fade_out = number("video_fade_out", 0, 0, 10)
     total_duration = number("duration", 0, 0, 86400)
+    if speed > 0:
+        total_duration = total_duration / speed
     if fade_in:
         chain.append("fade=t=in:st=0:d={:.3f}".format(fade_in))
     if fade_out and total_duration > 0:
