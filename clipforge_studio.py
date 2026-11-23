@@ -470,7 +470,9 @@ class App:
                 rows.append({"name": name, "status": status, "path": path, "url": queued_url})
             data = {"output_folder": self.out, "rows": rows,
                     "status": self.status.get(), "progress": float(self.pb["value"]),
-                    "stage": self.current_stage}
+                    "stage": self.current_stage, "export_quality": self.export_quality,
+                    "export_fps": self.export_fps, "export_resolution": self.export_resolution,
+                    "export_format": self.format.get()}
             temp = self.state_file.with_suffix(".tmp")
             temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             temp.replace(self.state_file)
@@ -483,6 +485,13 @@ class App:
                 return
             data = json.loads(self.state_file.read_text(encoding="utf-8"))
             self.out = data.get("output_folder", self.out)
+            self.export_quality = data.get("export_quality", self.export_quality)
+            self.export_fps = data.get("export_fps", self.export_fps)
+            self.export_resolution = data.get("export_resolution", self.export_resolution)
+            self.quality_box.set(self.export_quality)
+            self.fps_box.set(self.export_fps)
+            self.resolution_box.set(self.export_resolution)
+            self.format.set(data.get("export_format", self.format.get()))
             self.folder_label.config(text="Output: " + self.out)
             for row in data.get("rows", []):
                 path = row.get("path", "")
