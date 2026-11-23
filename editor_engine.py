@@ -241,7 +241,7 @@ def escape_drawtext(value):
             .replace("'", "\\'").replace("%", "\\%").replace(",", "\\,")
             .replace("[", "\\[").replace("]", "\\]"))
 
-def build_filter_chain(fmt="Original", preset="Original", adjustments=None, overlay=None, subtitle=None):
+def build_filter_chain(fmt="Original", preset="Original", adjustments=None, overlay=None, subtitle=None, overlay_image=None):
     adjustments = adjustments or {}
     if preset in (None, "", "None"):
         preset = "Original"
@@ -324,6 +324,21 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
                          font=safe_font, text=safe_text, color=color, size=size,
                          border=border, shadow=shadow, box=box, y=y))
     chain.append("setsar=1")
+    if overlay_image:
+        opacity = number("overlay_opacity", 0.85, 0.05, 1)
+        scale = number("overlay_scale", 0.25, 0.05, 1)
+        placement = overlay.get("image_position", "Bottom Right")
+        positions = {
+            "Top Left": ("30", "30"), "Top Right": ("W-w-30", "30"),
+            "Center": ("(W-w)/2", "(H-h)/2"),
+            "Bottom Left": ("30", "H-h-30"),
+            "Bottom Right": ("W-w-30", "H-h-30")
+        }
+        x, y = positions.get(placement, positions["Bottom Right"])
+        base = chain[0] + "," + ",".join(chain[1:]) if fmt == "Vertical 9:16" else "[0:v]," + ",".join(chain)
+        return (base + "[vbase];[1:v]format=rgba,colorchannelmixer=aa={:.3f},"
+                "scale=iw*{:.3f}:ih*{:.3f}[ov];[vbase][ov]overlay=x={}:y={}:shortest=1[vout]"
+                ).format(opacity, scale, scale, x, y)
     if fmt == "Vertical 9:16":
         return chain[0] + "," + ",".join(chain[1:]) + "[vout]"
     return ",".join(chain)
