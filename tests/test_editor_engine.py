@@ -6,8 +6,8 @@ from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names
 class FilterCatalogTests(unittest.TestCase):
     def test_catalog_has_named_categories_and_presets(self):
         names = filter_names()
-        self.assertEqual(len(names), 7)
-        self.assertGreaterEqual(sum(len(items) for items in names.values()), 40)
+        self.assertGreaterEqual(len(names), 12)
+        self.assertGreaterEqual(sum(len(items) for items in names.values()), 70)
         for category, presets in names.items():
             self.assertTrue(category)
             self.assertTrue(presets)
