@@ -32,6 +32,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Timeline ruler: click to position a playhead, add/remove multiple cut points, and export the resulting clips.
 - Creator Editor with Filter, Adjust, Text & Overlay, and Subtitles tabs.
 - 14 filter categories with 70+ named presets: Basic, Portrait, Cinematic, Vintage, Black & White, Color, Creative, Food, Nature, Travel, Night, Wedding, Urban, and Film. These are original ClipForge presets, not copied CapCut assets.
+- Each filter tile renders a thumbnail from the selected video and displays its preset name; previews are cached per source video.
 - Image and logo overlays from PNG/WebP/JPG/GIF (including animated GIF stickers) with opacity, scale, five placement positions, and start/end timing.
 - Text overlays can be timed to appear only during a selected portion of the video.
 - Text overlay with font family, size, color, outline/shadow, background box, and top/center/bottom placement.
