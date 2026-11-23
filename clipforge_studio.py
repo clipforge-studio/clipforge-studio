@@ -248,6 +248,8 @@ class App:
         tk.Label(win, text=Path(source).name, bg="#1f2937", fg="#94a3b8",
                  wraplength=480).pack(anchor="w", padx=20, pady=(0, 14))
         volume = tk.DoubleVar(value=100)
+        music_volume = tk.DoubleVar(value=35)
+        music_path = tk.StringVar()
         fade_in = tk.StringVar(value="0")
         fade_out = tk.StringVar(value="0")
         tk.Label(win, text="Original audio volume (%)", bg="#1f2937", fg="#cbd5e1").pack(anchor="w", padx=20)
@@ -261,12 +263,26 @@ class App:
         tk.Label(fields, text="Fade out (seconds)", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=1, sticky="w", padx=12)
         ttk.Entry(fields, textvariable=fade_in, width=12).grid(row=1, column=0, sticky="w")
         ttk.Entry(fields, textvariable=fade_out, width=12).grid(row=1, column=1, sticky="w", padx=12)
+        tk.Label(win, text="Background music (optional)", bg="#1f2937", fg="#cbd5e1").pack(
+            anchor="w", padx=20, pady=(10, 4))
+        music_row = tk.Frame(win, bg="#1f2937")
+        music_row.pack(fill="x", padx=20)
+        ttk.Entry(music_row, textvariable=music_path).pack(side="left", fill="x", expand=True)
+        self.button(music_row, "Choose Music", lambda: music_path.set(
+            filedialog.askopenfilename(filetypes=[("Audio files", "*.mp3 *.wav *.m4a *.aac *.ogg *.flac")])
+            or music_path.get()), "#475569").pack(side="left", padx=6)
+        tk.Label(win, text="Music volume (%)", bg="#1f2937", fg="#cbd5e1").pack(
+            anchor="w", padx=20, pady=(8, 0))
+        ttk.Scale(win, from_=0, to=150, variable=music_volume,
+            orient="horizontal", length=420).pack(padx=20, pady=6)
         tk.Label(win, text="Exports a new H.264 MP4; the source file stays unchanged.",
                  bg="#1f2937", fg="#94a3b8").pack(anchor="w", padx=20, pady=6)
         def export_audio():
             try:
                 fi, fo = float(fade_in.get()), float(fade_out.get())
                 if fi < 0 or fo < 0 or fi + fo > duration:
+                    raise ValueError()
+                if music_path.get() and not os.path.isfile(music_path.get()):
                     raise ValueError()
             except Exception:
                 messagebox.showerror(APP, "Enter valid fade durations within the video length.", parent=win)
@@ -277,11 +293,13 @@ class App:
                 return
             self.busy = True
             threading.Thread(target=self.audio_worker,
-                             args=(source, volume.get()/100.0, fi, fo, duration),
+                             args=(source, volume.get()/100.0, fi, fo, duration,
+                                   music_path.get() or None, music_volume.get()/100.0),
                              daemon=True).start()
         self.button(win, "Export Audio Adjustments", export_audio, "#0f766e").pack(anchor="e", padx=20, pady=18)
 
-    def audio_worker(self, source, volume, fade_in, fade_out, duration):
+    def audio_worker(self, source, volume, fade_in, fade_out, duration,
+                     music_path=None, music_volume=0.35):
         try:
             filters = [f"volume={volume:.3f}"]
             if fade_in > 0:
@@ -298,12 +316,39 @@ class App:
                                       fmt.replace(" ", "_").replace(":", "") + ".mp4")
                 vf = self.video_filter(fmt)
                 cmd = [self.ffmpeg, "-y", "-i", source]
-                if fmt == "Vertical 9:16":
-                    cmd += ["-filter_complex", vf, "-map", "[vout]"]
+                if music_path:
+                    cmd += ["-stream_loop", "-1", "-i", music_path]
+                    if fmt == "Vertical 9:16":
+                        video_graph = vf
+                    else:
+                        video_graph = "[0:v]" + vf + "[vout]"
+                    probe = subprocess.run([locate("ffprobe"), "-v", "error",
+                        "-select_streams", "a:0", "-show_entries", "stream=index",
+                        "-of", "csv=p=0", source], capture_output=True, text=True,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                    has_audio = bool(probe.stdout.strip())
+                    graph_parts = [video_graph]
+                    if has_audio:
+                        original_audio = "volume={:.3f}".format(volume)
+                        if fade_in > 0:
+                            original_audio += ",afade=t=in:st=0:d={:.3f}".format(fade_in)
+                        if fade_out > 0:
+                            original_audio += ",afade=t=out:st={:.3f}:d={:.3f}".format(
+                                max(0, duration-fade_out), fade_out)
+                        graph_parts.append("[0:a]" + original_audio + "[a0]")
+                        graph_parts.append("[1:a]volume={:.3f}[a1]".format(music_volume))
+                        graph_parts.append("[a0][a1]amix=inputs=2:duration=longest:dropout_transition=2[aout]")
+                    else:
+                        graph_parts.append("[1:a]volume={:.3f}[aout]".format(music_volume))
+                    cmd += ["-filter_complex", ";".join(graph_parts),
+                            "-map", "[vout]", "-map", "[aout]", "-shortest"]
                 else:
-                    cmd += ["-vf", vf, "-map", "0:v:0"]
-                cmd += ["-map", "0:a?", "-af", ",".join(filters),
-                        "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                    if fmt == "Vertical 9:16":
+                        cmd += ["-filter_complex", vf, "-map", "[vout]"]
+                    else:
+                        cmd += ["-vf", vf, "-map", "0:v:0"]
+                    cmd += ["-map", "0:a?", "-af", ",".join(filters)]
+                cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart", output]
                 if self.run_command(cmd):
