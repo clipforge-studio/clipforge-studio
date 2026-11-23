@@ -96,8 +96,9 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("afade=t=out:st=28.750:d=1.250", graph)
 
     def test_music_only_graph_works_without_source_audio(self):
-        graph = build_audio_mix_graph(False, 1, 0.5)
-        self.assertEqual(graph, "[1:a]volume=0.500[aout]")
+        graph = build_audio_mix_graph(False, 1, 0.5, duration=10,
+                                       music_fade_in=0.5, music_fade_out=1)
+        self.assertEqual(graph, "[1:a]volume=0.500,afade=t=in:st=0:d=0.500,afade=t=out:st=9.000:d=1.000[aout]")
 
     def test_text_and_image_overlay_timing_is_applied(self):
         text_graph = build_filter_chain("Original", "Original",
