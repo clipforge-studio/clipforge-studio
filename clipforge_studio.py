@@ -731,11 +731,64 @@ class App:
 
     def preview(self):
         source = self.selected()
-        if source:
+        if not source:
+            return
+        try:
+            duration = self.probe_duration(source)
+        except Exception as exc:
+            messagebox.showerror(APP, "Could not read video: " + str(exc))
+            return
+        win = tk.Toplevel(self.root)
+        win.title("ClipForge Studio — Video Preview")
+        win.geometry("900x650")
+        win.configure(bg="#0b1020")
+        win.transient(self.root)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_rowconfigure(1, weight=1)
+        tk.Label(win, text="VIDEO PREVIEW", bg="#0b1020", fg="#a5b4fc",
+                 font=("Segoe UI", 11, "bold")).grid(row=0, column=0, sticky="w", padx=20, pady=(16, 4))
+        tk.Label(win, text=Path(source).name, bg="#0b1020", fg="#94a3b8",
+                 wraplength=850).grid(row=0, column=0, sticky="e", padx=20, pady=(16, 4))
+        stage = tk.Frame(win, bg="#050914", highlightthickness=1, highlightbackground="#263956")
+        stage.grid(row=1, column=0, sticky="nsew", padx=20, pady=12)
+        stage.grid_columnconfigure(0, weight=1)
+        stage.grid_rowconfigure(0, weight=1)
+        image_label = tk.Label(stage, text="Generating preview frame…", bg="#050914", fg="#94a3b8")
+        image_label.grid(row=0, column=0, sticky="nsew")
+        controls = tk.Frame(win, bg="#0b1020")
+        controls.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 16))
+        position = tk.DoubleVar(value=0.0)
+        time_label = tk.Label(controls, text="00:00:00", bg="#0b1020", fg="#c4b5fd",
+                              font=("Consolas", 10, "bold"))
+        time_label.pack(side="left", padx=(0, 12))
+        seek = ttk.Scale(controls, from_=0, to=max(0.1, duration), variable=position)
+        seek.pack(side="left", fill="x", expand=True, padx=8)
+        self.button(controls, "Refresh Frame", lambda: render_frame(), "#344765").pack(side="left", padx=6)
+        self.button(controls, "▶  Play Full Video", lambda: os.startfile(source), "#0e9f83").pack(side="left")
+        frame_path = os.path.join(tempfile.gettempdir(), "clipforge_preview_frame.png")
+        def render_frame():
+            if not os.path.isfile(self.ffmpeg or ""):
+                self.ffmpeg = locate("ffmpeg")
+            if not self.ffmpeg:
+                image_label.config(text="FFmpeg not found — install ffmpeg.exe to preview frames.")
+                return
+            seconds = max(0.0, min(duration, position.get()))
+            time_label.config(text=self.seconds_label(seconds))
             try:
-                os.startfile(source)
+                result = subprocess.run([self.ffmpeg, "-y", "-ss", str(seconds), "-i", source,
+                                         "-frames:v", "1", "-vf", "scale=820:460:force_original_aspect_ratio=decrease",
+                                         frame_path], capture_output=True, text=True,
+                                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                if result.returncode != 0 or not os.path.isfile(frame_path):
+                    image_label.config(text="Could not generate this preview frame.")
+                    return
+                photo = tk.PhotoImage(file=frame_path)
+                image_label.config(image=photo, text="")
+                image_label.image = photo
             except Exception as exc:
-                messagebox.showerror(APP, str(exc))
+                image_label.config(text="Preview error: " + str(exc))
+        seek.bind("<ButtonRelease-1>", lambda event: render_frame())
+        render_frame()
 
     def poll(self):
         try:
