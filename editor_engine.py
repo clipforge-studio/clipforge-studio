@@ -158,6 +158,47 @@ FILTER_CATEGORIES = {
             "eq=saturation=1.10"
         ]
     },
+    "Food": {
+        "Appetizing": ["eq=saturation=1.25:contrast=1.08", "colorbalance=rs=0.035:gs=0.02:bs=-0.035"],
+        "Fresh Ingredients": ["eq=saturation=1.18:brightness=0.025", "unsharp=3:3:0.35"],
+        "Warm Kitchen": ["colorbalance=rs=0.10:gs=0.035:bs=-0.10", "eq=contrast=1.05"],
+        "Cafe Mood": ["eq=contrast=1.12:saturation=0.88", "vignette=PI/7"]
+    },
+    "Nature": {
+        "Green World": ["colorbalance=gs=0.12:gm=0.06", "eq=saturation=1.18"],
+        "Golden Hour": ["colorbalance=rs=0.12:gs=0.035:bs=-0.12", "eq=brightness=0.025:saturation=1.12"],
+        "Misty Morning": ["gblur=sigma=0.45", "eq=contrast=0.88:saturation=0.82:brightness=0.035"],
+        "Deep Forest": ["colorbalance=gs=0.10:bs=-0.035", "eq=contrast=1.14:saturation=0.92"]
+    },
+    "Travel": {
+        "Tropical": ["colorbalance=rs=0.04:gs=0.045:bs=0.08", "eq=saturation=1.28"],
+        "Desert": ["colorbalance=rs=0.14:gs=0.055:bs=-0.14", "eq=saturation=0.88:contrast=1.08"],
+        "Alpine": ["colorbalance=rs=-0.06:gs=0.015:bs=0.10", "eq=contrast=1.08:saturation=0.92"],
+        "Coastal": ["colorbalance=rs=-0.025:gs=0.025:bs=0.11", "eq=saturation=1.10"]
+    },
+    "Night": {
+        "Neon Night": ["eq=contrast=1.22:saturation=1.48", "colorbalance=bs=0.08:rs=0.04"],
+        "Moonlight": ["colorbalance=rs=-0.07:gs=-0.025:bs=0.13", "eq=brightness=-0.035:contrast=1.10"],
+        "City Lights": ["eq=contrast=1.18:saturation=1.18", "unsharp=3:3:0.3"],
+        "Low Light Lift": ["eq=brightness=0.09:gamma=1.18:contrast=1.04"]
+    },
+    "Wedding": {
+        "Soft Romance": ["gblur=sigma=0.35", "eq=brightness=0.035:contrast=0.94:saturation=0.92"],
+        "Ivory": ["colorbalance=rs=0.06:gs=0.025:bs=-0.035", "eq=brightness=0.04:saturation=0.82"],
+        "Blush": ["colorbalance=rs=0.09:gs=-0.015:bs=0.035", "eq=saturation=0.92"]
+    },
+    "Urban": {
+        "Street Contrast": ["eq=contrast=1.28:saturation=0.88", "unsharp=5:5:0.45"],
+        "Concrete": ["hue=s=0", "eq=contrast=1.12:brightness=-0.015"],
+        "Graffiti Pop": ["eq=contrast=1.25:saturation=1.55"]
+    },
+    "Film": {
+        "Classic Film": ["curves=medium_contrast", "eq=saturation=0.92", "noise=alls=3:allf=t"],
+        "Bleach Bypass": ["eq=contrast=1.35:saturation=0.55"],
+        "Film Grain": ["noise=alls=8:allf=t", "eq=contrast=1.04"],
+        "Kodak Warm": ["colorbalance=rs=0.10:gs=0.035:bs=-0.10", "eq=saturation=0.96"],
+        "Fuji Cool": ["colorbalance=rs=-0.035:gs=0.015:bs=0.085", "eq=saturation=1.02"]
+    },
     "Creative": {
         "Dreamy": [
             "gblur=sigma=1.3",
