@@ -38,6 +38,15 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("drawtext=", result)
         self.assertIn("box=1", result)
 
+    def test_image_overlay_builds_second_input_graph(self):
+        graph = build_filter_chain("Landscape", "Original",
+            {"overlay_opacity": 0.7, "overlay_scale": 0.3},
+            {"image_position": "Top Right"}, overlay_image="logo.png")
+        self.assertIn("[1:v]", graph)
+        self.assertIn("overlay=x=W-w-30:y=30", graph)
+        self.assertIn("aa=0.700", graph)
+        self.assertTrue(graph.endswith("[vout]"))
+
     def test_unknown_preset_is_rejected(self):
         with self.assertRaises(ValueError):
             build_filter_chain("Original", "Not A Real Filter")
