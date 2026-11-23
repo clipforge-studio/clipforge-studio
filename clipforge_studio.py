@@ -1013,6 +1013,8 @@ class App:
         preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=12)
         filter_cards = tk.Frame(filter_tab, bg="#172235")
         filter_cards.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        filter_tile_buttons = {}
+        thumbnail_state = {"token": 0}
         def choose_filter(name):
             effect.set(name)
             preview_filter_name.config(text="Selected filter: " + name)
@@ -1021,25 +1023,60 @@ class App:
                     child.configure(bg="#2563eb")
                 else:
                     child.configure(bg="#344765")
+        def apply_filter_thumbnail(name, path, token):
+            if token != thumbnail_state["token"] or not win.winfo_exists():
+                return
+            tile = filter_tile_buttons.get(name)
+            if tile and os.path.isfile(path):
+                try:
+                    photo = tk.PhotoImage(file=path)
+                    tile.configure(image=photo, text=name, compound="top")
+                    tile.image = photo
+                except Exception:
+                    pass
+        def create_filter_thumbnails(category_name, choices, token):
+            if not self.ffmpeg:
+                return
+            for name in choices:
+                if token != thumbnail_state["token"]:
+                    return
+                path = os.path.join(tempfile.gettempdir(),
+                    "clipforge_filter_" + clean(category_name) + "_" + clean(name) + ".png")
+                try:
+                    graph = self.video_filter("Original", name)
+                    graph += ",scale=170:78:force_original_aspect_ratio=decrease,pad=170:78:(ow-iw)/2:(oh-ih)/2"
+                    command = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                        "-ss", str(playhead[0]), "-i", source, "-vf", graph,
+                        "-frames:v", "1", path]
+                    result = subprocess.run(command, capture_output=True, text=True, timeout=25,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                    if result.returncode == 0 and os.path.isfile(path):
+                        self.root.after(0, lambda n=name, p=path, t=token:
+                                        apply_filter_thumbnail(n, p, t))
+                except Exception:
+                    continue
         def render_filter_cards():
             for child in filter_cards.winfo_children():
                 child.destroy()
+            filter_tile_buttons.clear()
             choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
             filter_box.configure(values=choices)
             if effect.get() not in choices:
                 effect.set("Original" if "Original" in choices else choices[0])
+            thumbnail_state["token"] += 1
+            token = thumbnail_state["token"]
             for index, name in enumerate(choices):
-                card = self.button(filter_cards, name, lambda item=name: choose_filter(item),
-                                   "#2563eb" if name == effect.get() else "#344765")
-                card._filter_name = name
-                card.grid(row=index // 4, column=index % 4, sticky="ew", padx=4, pady=4)
+                tile = tk.Button(filter_cards, text=name + "\nPreview loading…",
+                    command=lambda item=name: choose_filter(item), bg="#2563eb" if name == effect.get() else "#344765",
+                    fg="white", activebackground="#3b82f6", activeforeground="white",
+                    relief="flat", bd=0, font=("Segoe UI", 9, "bold"),
+                    width=19, height=7, wraplength=145, compound="top", cursor="hand2")
+                tile._filter_name = name
+                tile.grid(row=index // 4, column=index % 4, sticky="nsew", padx=4, pady=4)
                 filter_cards.grid_columnconfigure(index % 4, weight=1)
-        def change_category(_event=None):
-            render_filter_cards()
-            preview_filter_name.config(text=" / ".join(FILTER_CATEGORIES.get(category.get(), {}).keys()))
-        category_box.bind("<<ComboboxSelected>>", change_category)
-        filter_box.bind("<<ComboboxSelected>>", lambda _e: choose_filter(effect.get()))
-        render_filter_cards()
+                filter_tile_buttons[name] = tile
+            threading.Thread(target=create_filter_thumbnails,
+                args=(category.get(), choices, token), daemon=True).start()
 
         adjustment_vars = {
             "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
