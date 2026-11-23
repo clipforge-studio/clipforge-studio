@@ -1,4 +1,4 @@
-import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util, sysconfig
+import os, hashlib, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile, sys, importlib.util, sysconfig
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 from editor_engine import FILTER_CATEGORIES, build_filter_chain, build_audio_mix_graph
@@ -1159,6 +1159,8 @@ class App:
                     tile.image = photo
                 except Exception:
                     pass
+        source_key = hashlib.sha1((os.path.abspath(source) +
+            str(os.path.getmtime(source))).encode("utf-8", errors="ignore")).hexdigest()[:10]
         def create_filter_thumbnails(category_name, choices, token):
             if not self.ffmpeg:
                 return
@@ -1166,7 +1168,8 @@ class App:
                 if token != thumbnail_state["token"]:
                     return
                 path = os.path.join(tempfile.gettempdir(),
-                    "clipforge_filter_" + clean(category_name) + "_" + clean(name) + ".png")
+                    "clipforge_filter_" + clean(category_name) + "_" + clean(name) +
+                    "_" + source_key + ".png")
                 try:
                     if os.path.isfile(path):
                         self.root.after(0, lambda n=name, p=path, t=token:
