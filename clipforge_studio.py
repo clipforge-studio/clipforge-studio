@@ -998,7 +998,7 @@ class App:
                     "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
                     "video_fade_in": video_fade_in.get(),
                     "video_fade_out": video_fade_out.get(), "duration": duration,
-                    "speed": speed_var.get()})
+                    "speed": speed_var.get(), "canvas_mode": canvas_mode_var.get()})
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
@@ -1141,6 +1141,7 @@ class App:
         video_fade_in = tk.DoubleVar(value=0)
         video_fade_out = tk.DoubleVar(value=0)
         speed_var = tk.DoubleVar(value=1)
+        canvas_mode_var = tk.StringVar(value="Fit")
         slider_specs = [
             ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
             ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
@@ -1179,13 +1180,19 @@ class App:
             row=11, column=0, sticky="w", padx=12, pady=5)
         ttk.Scale(adjust_tab, from_=0.5, to=2, variable=speed_var,
             orient="horizontal").grid(row=11, column=1, sticky="ew", padx=12)
+        tk.Label(adjust_tab, text="Canvas fit", bg="#172235", fg="#dbeafe").grid(
+            row=12, column=0, sticky="w", padx=12, pady=5)
+        ttk.Combobox(adjust_tab, textvariable=canvas_mode_var,
+            values=["Fit", "Fill", "Stretch"], state="readonly", width=18).grid(
+            row=12, column=1, sticky="w", padx=12)
         self.button(adjust_tab, "Reset Adjustments",
             lambda: ([v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
                             "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
                      for k,v in adjustment_vars.items()], rotation_var.set("None"),
                      flip_h_var.set(False), flip_v_var.set(False),
-                     video_fade_in.set(0), video_fade_out.set(0), speed_var.set(1)), "#475569").grid(
-                         row=12, column=0, sticky="w", padx=12, pady=8)
+                     video_fade_in.set(0), video_fade_out.set(0),
+                     speed_var.set(1), canvas_mode_var.set("Fit")), "#475569").grid(
+                         row=13, column=0, sticky="w", padx=12, pady=8)
 
         overlay_text = tk.StringVar()
         overlay_size = tk.StringVar(value="48")
@@ -1300,7 +1307,7 @@ class App:
                     "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
                     "video_fade_in": video_fade_in.get(),
                     "video_fade_out": video_fade_out.get(), "duration": duration,
-                    "speed": speed_var.get()})
+                    "speed": speed_var.get(), "canvas_mode": canvas_mode_var.get()})
                 adjustments["subtitle_size"] = subtitle_size.get()
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
