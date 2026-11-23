@@ -954,7 +954,8 @@ class App:
                 chosen_adjustments.update({"rotation": rotation_var.get(),
                     "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
                     "video_fade_in": video_fade_in.get(),
-                    "video_fade_out": video_fade_out.get(), "duration": duration})
+                    "video_fade_out": video_fade_out.get(), "duration": duration,
+                    "speed": speed_var.get()})
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
@@ -1096,6 +1097,7 @@ class App:
         flip_v_var = tk.BooleanVar(value=False)
         video_fade_in = tk.DoubleVar(value=0)
         video_fade_out = tk.DoubleVar(value=0)
+        speed_var = tk.DoubleVar(value=1)
         slider_specs = [
             ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
             ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
@@ -1130,13 +1132,17 @@ class App:
             row=10, column=0, sticky="w", padx=12, pady=5)
         ttk.Scale(adjust_tab, from_=0, to=min(5, duration/2), variable=video_fade_out,
             orient="horizontal").grid(row=10, column=1, sticky="ew", padx=12)
+        tk.Label(adjust_tab, text="Playback speed", bg="#172235", fg="#dbeafe").grid(
+            row=11, column=0, sticky="w", padx=12, pady=5)
+        ttk.Scale(adjust_tab, from_=0.5, to=2, variable=speed_var,
+            orient="horizontal").grid(row=11, column=1, sticky="ew", padx=12)
         self.button(adjust_tab, "Reset Adjustments",
             lambda: ([v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
                             "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
                      for k,v in adjustment_vars.items()], rotation_var.set("None"),
                      flip_h_var.set(False), flip_v_var.set(False),
-                     video_fade_in.set(0), video_fade_out.set(0)), "#475569").grid(
-                         row=11, column=0, sticky="w", padx=12, pady=8)
+                     video_fade_in.set(0), video_fade_out.set(0), speed_var.set(1)), "#475569").grid(
+                         row=12, column=0, sticky="w", padx=12, pady=8)
 
         overlay_text = tk.StringVar()
         overlay_size = tk.StringVar(value="48")
@@ -1250,7 +1256,8 @@ class App:
                 adjustments.update({"rotation": rotation_var.get(),
                     "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
                     "video_fade_in": video_fade_in.get(),
-                    "video_fade_out": video_fade_out.get(), "duration": duration})
+                    "video_fade_out": video_fade_out.get(), "duration": duration,
+                    "speed": speed_var.get()})
                 adjustments["subtitle_size"] = subtitle_size.get()
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
@@ -1302,13 +1309,18 @@ class App:
                     cmd += ["-filter_complex", vf, "-map", "[vout]"]
                 else:
                     cmd += ["-vf", vf, "-map", "0:v:0"]
-                cmd += ["-map", "0:a?", "-c:v", "libx264", "-preset", "veryfast",
+                cmd += ["-map", "0:a?"]
+                speed = float((adjustments or {}).get("speed", 1))
+                if abs(speed - 1) > 0.0001:
+                    cmd += ["-af", "atempo={:.4f}".format(speed)]
+                cmd += ["-c:v", "libx264", "-preset", "veryfast",
                         "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart"]
                 if overlay_image_path:
                     cmd += ["-shortest"]
                 if cuts:
-                    cmd += ["-f", "segment", "-segment_times", ",".join(f"{x:.3f}" for x in cuts),
+                    cmd += ["-f", "segment", "-segment_times", ",".join(
+                                f"{x / max(0.5, speed):.3f}" for x in cuts),
                             "-reset_timestamps", "1", "-segment_format", "mp4"]
                 cmd += [output]
                 if self.run_command(cmd):
