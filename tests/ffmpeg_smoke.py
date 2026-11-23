@@ -98,6 +98,18 @@ total += 1
 if result.returncode:
     failures.append(("Adjust", "Video fade in/out", result.stderr[-1200:]))
 
+vertical_overlay_graph = build_filter_chain("Vertical 9:16", "Original",
+    {"overlay_opacity": 0.7, "overlay_scale": 0.2},
+    {"image_position": "Top Left"}, overlay_image="logo.png")
+command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+           *source, "-f", "lavfi", "-i", "color=c=blue@0.5:s=64x64:d=0.3",
+           "-filter_complex", vertical_overlay_graph, "-map", "[vout]",
+           "-frames:v", "1", "-f", "null", "-"]
+result = subprocess.run(command, capture_output=True, text=True)
+total += 1
+if result.returncode:
+    failures.append(("Overlay", "Vertical logo compositing", result.stderr[-1200:]))
+
 transform_graph = build_filter_chain("Landscape", "Original",
     {"rotation": "90° CW", "flip_h": True, "flip_v": False})
 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
