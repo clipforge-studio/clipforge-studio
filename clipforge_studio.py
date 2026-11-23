@@ -1,6 +1,7 @@
 import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
+from editor_engine import FILTER_CATEGORIES, build_filter_chain
 
 APP = "ClipForge Studio"
 
@@ -688,36 +689,11 @@ class App:
         finally:
             self.events.put(("finished",))
 
-    def video_filter(self, fmt, effect="None", text="", font_size=48, position="Bottom", subtitle=None):
-        filters = []
-        if fmt == "Vertical 9:16":
-            base = ("[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
-                    "crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:force_original_aspect_ratio=decrease"
-                    "[front];[blur][front]overlay=(W-w)/2:(H-h)/2")
-            filters.append(base)
-        elif fmt == "Landscape":
-            filters.append("scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
-        else:
-            filters.append("setsar=1")
-        if effect == "Black & White":
-            filters.append("hue=s=0")
-        elif effect == "Warm":
-            filters.append("colorbalance=rs=0.08:gs=0.02:bs=-0.08")
-        elif effect == "Vintage":
-            filters.append("curves=vintage")
-        elif effect == "Sharpen":
-            filters.append("unsharp=5:5:0.8:3:3:0.4")
-        if subtitle:
-            filters.append("subtitles='" + ffpath(subtitle) + "'")
-        if text.strip():
-            y = "h-th-70" if position == "Bottom" else ("70" if position == "Top" else "(h-th)/2")
-            safe = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'").replace("%", "\\%").replace(",", "\\,")
-            filters.append("drawtext=text='" + safe + "':fontcolor=white:fontsize=" + str(int(font_size)) +
-                           ":borderw=3:bordercolor=black:x=(w-text_w)/2:y=" + y)
-        filters.append("setsar=1")
-        if fmt == "Vertical 9:16":
-            return filters[0] + "," + ",".join(filters[1:]) + "[vout]"
-        return ",".join(filters)
+    def video_filter(self, fmt, effect="Original", text="", font_size=48, position="Bottom",
+                     subtitle=None, adjustments=None, overlay=None):
+        if overlay is None:
+            overlay = {"text": text, "text_size": font_size, "position": position}
+        return build_filter_chain(fmt, effect or "Original", adjustments, overlay, subtitle)
 
     def encode_segments(self, source, folder, duration, fmt):
         output = os.path.join(folder, "Part_%03d.mp4")
