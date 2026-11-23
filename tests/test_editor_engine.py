@@ -47,6 +47,21 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("aa=0.700", graph)
         self.assertTrue(graph.endswith("[vout]"))
 
+    def test_rotation_and_flip_are_included(self):
+        graph = build_filter_chain("Landscape", "Original",
+            {"rotation": "90° CW", "flip_h": True, "flip_v": False})
+        self.assertIn("transpose=clock", graph)
+        self.assertIn("hflip", graph)
+
+    def test_subtitle_style_is_applied(self):
+        graph = build_filter_chain("Original", "Original",
+            {"subtitle_size": 36, "subtitle_outline": 4},
+            {"subtitle_color": "yellow", "subtitle_position": "Top"},
+            subtitle="captions.srt")
+        self.assertIn("FontSize=36", graph)
+        self.assertIn("PrimaryColour=&H0000FFFF", graph)
+        self.assertIn("Alignment=8", graph)
+
     def test_unknown_preset_is_rejected(self):
         with self.assertRaises(ValueError):
             build_filter_chain("Original", "Not A Real Filter")
