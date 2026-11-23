@@ -59,6 +59,15 @@ total += 1
 if result.returncode:
     failures.append(("Overlay", "PNG logo compositing", result.stderr[-1200:]))
 
+fade_graph = build_filter_chain("Landscape", "Original",
+    {"video_fade_in": 0.1, "video_fade_out": 0.1, "duration": 0.3})
+command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+           *source, "-vf", fade_graph, "-frames:v", "1", "-f", "null", "-"]
+result = subprocess.run(command, capture_output=True, text=True)
+total += 1
+if result.returncode:
+    failures.append(("Adjust", "Video fade in/out", result.stderr[-1200:]))
+
 transform_graph = build_filter_chain("Landscape", "Original",
     {"rotation": "90° CW", "flip_h": True, "flip_v": False})
 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
