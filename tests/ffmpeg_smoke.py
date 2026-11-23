@@ -110,6 +110,27 @@ total += 1
 if result.returncode:
     failures.append(("Overlay", "Vertical logo compositing", result.stderr[-1200:]))
 
+gif_file = Path(tempfile.gettempdir()) / "clipforge_sticker_smoke.gif"
+gif_create = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+    "-f", "lavfi", "-i", "testsrc2=size=64x64:rate=5:duration=0.4",
+    "-loop", "0", str(gif_file)]
+gif_result = subprocess.run(gif_create, capture_output=True, text=True)
+if gif_result.returncode == 0:
+    gif_graph = build_filter_chain("Landscape", "Original",
+        {"overlay_opacity": 0.8, "overlay_scale": 0.2},
+        {"image_position": "Top Left"}, overlay_image=str(gif_file))
+    command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+        *source, "-stream_loop", "-1", "-i", str(gif_file),
+        "-filter_complex", gif_graph, "-map", "[vout]",
+        "-frames:v", "2", "-f", "null", "-"]
+    result = subprocess.run(command, capture_output=True, text=True)
+    total += 1
+    if result.returncode:
+        failures.append(("Overlay", "Animated GIF sticker", result.stderr[-1200:]))
+else:
+    total += 1
+    failures.append(("Overlay", "Create animated GIF test asset", gif_result.stderr[-1200:]))
+
 transform_graph = build_filter_chain("Landscape", "Original",
     {"rotation": "90° CW", "flip_h": True, "flip_v": False})
 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
