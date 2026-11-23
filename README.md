@@ -36,7 +36,8 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Text overlay with font family, size, color, outline/shadow, background box, and top/center/bottom placement.
 - SRT subtitle burn-in with adjustable font size, color, outline, and alignment.
 - Image-frame preview that renders the selected filter, adjustments, text, subtitle, and logo overlay before export.
-- Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, and vertical flip.
+- Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, vertical flip, playback speed, video fade-in/out, and canvas fit/fill/stretch.
+- Audio tools: original audio volume, fade-in/out, and optional looping background music mixed with the source audio.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
 ### Known limitations
@@ -62,11 +63,10 @@ The app searches beside the Python script, in an `ffmpeg\bin` subfolder, in the 
 ## Run
 
 1. Install Python 3 if it is not already installed.
-2. Download `yt-dlp.exe` from the official yt-dlp project releases.
-3. Download a trusted FFmpeg Windows build containing FFmpeg, FFprobe, and `libx264` support.
-4. Keep `editor_engine.py` in the same folder as `clipforge_studio.py`.
-5. Double-click `SETUP_DEPENDENCIES.bat` once to install/update yt-dlp. FFmpeg and FFprobe must be installed and available on `PATH`, or placed beside the app.
-6. Double-click `START_APP.bat`.
+2. Install a trusted FFmpeg Windows build containing `ffmpeg.exe`, `ffprobe.exe`, and `libx264` support.
+3. Keep `editor_engine.py` in the same folder as `clipforge_studio.py`.
+4. Double-click `SETUP_DEPENDENCIES.bat` once to install/update yt-dlp. FFmpeg and FFprobe must be installed and available on `PATH`, or placed beside the app.
+5. Double-click `START_APP.bat`.
 6. Add a permitted video URL and click **Download**.
 7. Select the downloaded item and choose **Split Selected**, **Timeline / Multi-Cut**, or **Open Full Editor**.
 
