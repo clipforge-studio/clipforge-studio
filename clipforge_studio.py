@@ -952,7 +952,9 @@ class App:
                     "background": overlay_background.get(), "font": overlay_font.get()}
                 chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
                 chosen_adjustments.update({"rotation": rotation_var.get(),
-                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get()})
+                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
+                    "video_fade_in": video_fade_in.get(),
+                    "video_fade_out": video_fade_out.get(), "duration": duration})
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
@@ -1092,6 +1094,8 @@ class App:
         rotation_var = tk.StringVar(value="None")
         flip_h_var = tk.BooleanVar(value=False)
         flip_v_var = tk.BooleanVar(value=False)
+        video_fade_in = tk.DoubleVar(value=0)
+        video_fade_out = tk.DoubleVar(value=0)
         slider_specs = [
             ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
             ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
@@ -1118,12 +1122,21 @@ class App:
         tk.Checkbutton(adjust_tab, text="Flip vertically", variable=flip_v_var,
             bg="#172235", fg="#dbeafe", selectcolor="#0b1220",
             activebackground="#172235").grid(row=7, column=1, sticky="w", padx=12, pady=5)
+        tk.Label(adjust_tab, text="Video fade in (seconds)", bg="#172235", fg="#dbeafe").grid(
+            row=9, column=0, sticky="w", padx=12, pady=5)
+        ttk.Scale(adjust_tab, from_=0, to=min(5, duration/2), variable=video_fade_in,
+            orient="horizontal").grid(row=9, column=1, sticky="ew", padx=12)
+        tk.Label(adjust_tab, text="Video fade out (seconds)", bg="#172235", fg="#dbeafe").grid(
+            row=10, column=0, sticky="w", padx=12, pady=5)
+        ttk.Scale(adjust_tab, from_=0, to=min(5, duration/2), variable=video_fade_out,
+            orient="horizontal").grid(row=10, column=1, sticky="ew", padx=12)
         self.button(adjust_tab, "Reset Adjustments",
             lambda: ([v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
                             "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
                      for k,v in adjustment_vars.items()], rotation_var.set("None"),
-                     flip_h_var.set(False), flip_v_var.set(False)), "#475569").grid(
-                         row=8, column=0, sticky="w", padx=12, pady=8)
+                     flip_h_var.set(False), flip_v_var.set(False),
+                     video_fade_in.set(0), video_fade_out.set(0)), "#475569").grid(
+                         row=11, column=0, sticky="w", padx=12, pady=8)
 
         overlay_text = tk.StringVar()
         overlay_size = tk.StringVar(value="48")
@@ -1235,7 +1248,9 @@ class App:
                     raise ValueError()
                 adjustments = {key: value.get() for key, value in adjustment_vars.items()}
                 adjustments.update({"rotation": rotation_var.get(),
-                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get()})
+                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get(),
+                    "video_fade_in": video_fade_in.get(),
+                    "video_fade_out": video_fade_out.get(), "duration": duration})
                 adjustments["subtitle_size"] = subtitle_size.get()
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
