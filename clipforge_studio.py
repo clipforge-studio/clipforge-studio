@@ -951,6 +951,8 @@ class App:
                     "position": overlay_position.get(), "color": overlay_color.get(),
                     "background": overlay_background.get(), "font": overlay_font.get()}
                 chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                chosen_adjustments.update({"rotation": rotation_var.get(),
+                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get()})
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
@@ -1046,6 +1048,9 @@ class App:
             "sharpen": tk.DoubleVar(value=0), "fade": tk.DoubleVar(value=0),
             "vignette": tk.DoubleVar(value=0), "blur": tk.DoubleVar(value=0)
         }
+        rotation_var = tk.StringVar(value="None")
+        flip_h_var = tk.BooleanVar(value=False)
+        flip_v_var = tk.BooleanVar(value=False)
         slider_specs = [
             ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
             ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
@@ -1061,11 +1066,23 @@ class App:
             tk.Label(cell, text=label, bg="#172235", fg="#dbeafe").pack(anchor="w")
             ttk.Scale(cell, from_=low, to=high, variable=adjustment_vars[key],
                       orient="horizontal").pack(fill="x", pady=2)
+        tk.Label(adjust_tab, text="Rotate", bg="#172235", fg="#dbeafe").grid(
+            row=6, column=0, sticky="w", padx=12, pady=5)
+        ttk.Combobox(adjust_tab, textvariable=rotation_var,
+            values=["None", "90° CW", "180°", "90° CCW"],
+            state="readonly", width=18).grid(row=6, column=1, sticky="w", padx=12)
+        tk.Checkbutton(adjust_tab, text="Mirror horizontally", variable=flip_h_var,
+            bg="#172235", fg="#dbeafe", selectcolor="#0b1220",
+            activebackground="#172235").grid(row=7, column=0, sticky="w", padx=12, pady=5)
+        tk.Checkbutton(adjust_tab, text="Flip vertically", variable=flip_v_var,
+            bg="#172235", fg="#dbeafe", selectcolor="#0b1220",
+            activebackground="#172235").grid(row=7, column=1, sticky="w", padx=12, pady=5)
         self.button(adjust_tab, "Reset Adjustments",
-            lambda: [v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
+            lambda: ([v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
                             "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
-                     for k,v in adjustment_vars.items()], "#475569").grid(
-                         row=5, column=0, sticky="w", padx=12, pady=8)
+                     for k,v in adjustment_vars.items()], rotation_var.set("None"),
+                     flip_h_var.set(False), flip_v_var.set(False)), "#475569").grid(
+                         row=8, column=0, sticky="w", padx=12, pady=8)
 
         overlay_text = tk.StringVar()
         overlay_size = tk.StringVar(value="48")
@@ -1176,6 +1193,8 @@ class App:
                 if subtitle.get() and not os.path.isfile(subtitle.get()):
                     raise ValueError()
                 adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                adjustments.update({"rotation": rotation_var.get(),
+                    "flip_h": flip_h_var.get(), "flip_v": flip_v_var.get()})
                 adjustments["subtitle_size"] = subtitle_size.get()
                 adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
