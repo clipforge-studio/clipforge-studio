@@ -455,6 +455,8 @@ class App:
         try:
             os.makedirs(self.out, exist_ok=True)
             for index, (url, iid) in enumerate(list(self.jobs), 1):
+                self.events.put(("stage", "Downloading"))
+                self.events.put(("progress", 0))
                 self.events.put(("row", iid, url[:90], "Downloading", ""))
                 self.events.put(("status", "Downloading video " + str(index)))
                 work = os.path.join(self.out, "_ClipForge_Work", "job_" + str(index).zfill(3))
@@ -480,6 +482,8 @@ class App:
                     source_duration = self.probe_duration(source)
                 except Exception:
                     source_duration = None
+                self.events.put(("progress", 0))
+                self.events.put(("row", iid, url[:90], "Converting to H.264", source))
                 self.events.put(("status", "Converting to H.264 MP4..."))
                 convert_cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
                                "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
@@ -1026,6 +1030,8 @@ class App:
                 elif kind == "row":
                     _, iid, name, status, path = event
                     self.tree.item(iid, values=(name, status, path))
+                    if path and os.path.isfile(path):
+                        self.files[iid] = path
                     self.save_state()
                 elif kind == "downloaded":
                     _, iid, path, name = event
