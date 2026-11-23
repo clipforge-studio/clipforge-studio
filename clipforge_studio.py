@@ -244,6 +244,11 @@ class App:
         self.log.pack(fill="x", pady=(7, 0))
         self.log.pack_forget()
 
+    def set_export_controls(self, enabled=True):
+        state = "readonly" if enabled else "disabled"
+        for control in (self.format_box, self.resolution_box, self.quality_box, self.fps_box):
+            control.configure(state=state)
+
     def encoding_args(self):
         crf = {"Draft": "28", "Standard": "23", "High": "20", "Best": "17"}.get(
             self.export_quality, "20")
@@ -339,6 +344,7 @@ class App:
             selected_music_volume = music_volume.get()/100.0
             win.destroy()
             self.busy = True
+            self.set_export_controls(False)
             threading.Thread(target=self.audio_worker,
                              args=(source, selected_volume, fi, fo, duration,
                                    selected_music, selected_music_volume, selected_format),
@@ -610,6 +616,7 @@ class App:
             messagebox.showerror(APP, "Setup required: yt-dlp.exe and ffmpeg.exe must be available. See README.md.")
             return
         self.busy = True
+        self.set_export_controls(False)
         threading.Thread(target=self.download_worker, daemon=True).start()
 
     def run_command(self, cmd, duration=None):
@@ -770,6 +777,7 @@ class App:
             messagebox.showinfo(APP, "Wait for the current task to finish.")
             return
         self.busy = True
+        self.set_export_controls(False)
         threading.Thread(target=self.split_worker,
                          args=(source, mode, duration, start, end, output_format), daemon=True).start()
 
@@ -942,6 +950,7 @@ class App:
                       if points[i+1]-points[i] >= 0.25]
             win.destroy()
             self.busy = True
+            self.set_export_controls(False)
             threading.Thread(target=self.timeline_export_worker,
                              args=(source, ranges, self.format.get()), daemon=True).start()
         self.button(footer, "Export All Clips", export, "#15803d").pack(side="right")
@@ -1411,6 +1420,7 @@ class App:
                 return
             win.destroy()
             self.busy = True
+            self.set_export_controls(False)
             threading.Thread(target=self.editor_worker,
                              args=(source, sorted(cuts), subtitle.get() or None, effect.get(),
                                    overlay_text.get(), font_size, overlay_position.get(),
@@ -1584,6 +1594,7 @@ class App:
                     self.save_state()
                 elif kind == "finished":
                     self.busy = False
+                    self.set_export_controls(True)
                     self.save_state()
         except queue.Empty:
             pass
