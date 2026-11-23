@@ -53,6 +53,12 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("transpose=clock", graph)
         self.assertIn("hflip", graph)
 
+    def test_video_fade_in_and_out_are_applied(self):
+        graph = build_filter_chain("Original", "Original",
+            {"video_fade_in": 1.5, "video_fade_out": 2, "duration": 10})
+        self.assertIn("fade=t=in:st=0:d=1.500", graph)
+        self.assertIn("fade=t=out:st=8.000:d=2.000", graph)
+
     def test_subtitle_style_is_applied(self):
         graph = build_filter_chain("Original", "Original",
             {"subtitle_size": 36, "subtitle_outline": 4},
