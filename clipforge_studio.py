@@ -1434,6 +1434,9 @@ class App:
                 for index, (start_value, end_value, caption) in enumerate(caption_items, 1):
                     caption_list.insert("end", "{:02d}  {} → {}  {}".format(
                         index, srt_timestamp(start_value), srt_timestamp(end_value), caption))
+        tk.Label(subtitle_tab, text="Adding custom captions uses your caption list instead of the imported SRT for this export.",
+            bg="#172235", fg="#94a3b8", wraplength=760, justify="left").pack(
+                anchor="w", padx=14, pady=(0, 4))
         caption_buttons = tk.Frame(subtitle_tab, bg="#172235")
         caption_buttons.pack(fill="x", padx=14, pady=4)
         self.button(caption_buttons, "＋ Add Caption", add_caption, "#0f766e").pack(side="left")
