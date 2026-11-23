@@ -1078,6 +1078,10 @@ class App:
             threading.Thread(target=create_filter_thumbnails,
                 args=(category.get(), choices, token), daemon=True).start()
 
+        category_box.bind("<<ComboboxSelected>>", lambda _event: render_filter_cards())
+        filter_box.bind("<<ComboboxSelected>>", lambda _event: choose_filter(effect.get()))
+        render_filter_cards()
+
         adjustment_vars = {
             "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
             "saturation": tk.DoubleVar(value=1), "gamma": tk.DoubleVar(value=1),
