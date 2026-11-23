@@ -28,7 +28,13 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Automatic split using a user-entered segment duration.
 - Manual time-range export using start and end timestamps.
 - Timeline ruler: click to position a playhead, add/remove multiple cut points, and export the resulting clips.
-- Subtitle & Effects Editor: import an existing SRT file and burn it into the video, add a title/text overlay with size and position controls, and apply Black & White, Warm, Vintage, or Sharpen presets.
+- Creator Editor with Filter, Adjust, Text & Overlay, and Subtitles tabs.
+- 14 filter categories with 70+ named presets: Basic, Portrait, Cinematic, Vintage, Black & White, Color, Creative, Food, Nature, Travel, Night, Wedding, Urban, and Film. These are original ClipForge presets, not copied CapCut assets.
+- Image and logo overlays from PNG/WebP/JPG with opacity, scale, and five placement positions.
+- Text overlay with font family, size, color, outline/shadow, background box, and top/center/bottom placement.
+- SRT subtitle burn-in with adjustable font size, color, outline, and alignment.
+- Image-frame preview that renders the selected filter, adjustments, text, subtitle, and logo overlay before export.
+- Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, and vertical flip.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
 ### Known limitations
@@ -37,8 +43,8 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - The in-app preview currently extracts still frames at selected timestamps; it is not continuous embedded playback or frame-accurate scrubbing. Full playback opens in the system media player.
 - Timeline cut points are time-based; there is no drag-to-trim, clip rearrangement, transitions, or join tool yet.
 - Subtitle authoring and per-caption timing inside the app are not implemented; subtitles are imported from an existing SRT file and burned into the export.
-- Live preview of text, subtitles, and effects before export is not available.
-- Full audio track editing, keyframes, and advanced effects are not implemented.
+- Editor preview is a rendered still frame, not continuous real-time playback or a live GPU preview.
+- Multi-track audio mixing, keyframes, transitions, drag-and-drop clip arrangement, and professional color grading are not implemented.
 - Active downloads/conversions are not automatically resumed after reopening; the saved history and source file path remain available for retry.
 - Installer packaging and broad Windows hardware testing remain outstanding.
 
@@ -56,7 +62,7 @@ The app searches beside the Python script, in an `ffmpeg\bin` subfolder, in the 
 1. Install Python 3 if it is not already installed.
 2. Download `yt-dlp.exe` from the official yt-dlp project releases.
 3. Download a trusted FFmpeg Windows build containing FFmpeg, FFprobe, and `libx264` support.
-4. Put `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside `clipforge_studio.py` (or add them to `PATH`).
+4. Put `yt-dlp.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside `clipforge_studio.py` (or add them to `PATH`). Keep `editor_engine.py` in the same folder as `clipforge_studio.py`.
 5. Double-click `START_APP.bat`.
 6. Add a permitted video URL and click **Download**.
 7. Select the downloaded item and choose **Split Selected**, **Timeline / Multi-Cut**, or **Open Full Editor**.
