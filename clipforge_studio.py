@@ -1009,14 +1009,35 @@ class App:
         preview_filter_name = tk.Label(filter_tab, text=f"{preset_count} named presets across {len(FILTER_CATEGORIES)} categories",
             bg="#172235", fg="#94a3b8", font=("Segoe UI", 9))
         preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=12)
-        def change_category(_event=None):
+        filter_cards = tk.Frame(filter_tab, bg="#172235")
+        filter_cards.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        def choose_filter(name):
+            effect.set(name)
+            preview_filter_name.config(text="Selected filter: " + name)
+            for child in filter_cards.winfo_children():
+                if getattr(child, "_filter_name", None) == name:
+                    child.configure(bg="#2563eb")
+                else:
+                    child.configure(bg="#344765")
+        def render_filter_cards():
+            for child in filter_cards.winfo_children():
+                child.destroy()
             choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
             filter_box.configure(values=choices)
-            effect.set("Original" if "Original" in choices else choices[0])
-            preview_filter_name.config(text=" / ".join(choices))
+            if effect.get() not in choices:
+                effect.set("Original" if "Original" in choices else choices[0])
+            for index, name in enumerate(choices):
+                card = self.button(filter_cards, name, lambda item=name: choose_filter(item),
+                                   "#2563eb" if name == effect.get() else "#344765")
+                card._filter_name = name
+                card.grid(row=index // 4, column=index % 4, sticky="ew", padx=4, pady=4)
+                filter_cards.grid_columnconfigure(index % 4, weight=1)
+        def change_category(_event=None):
+            render_filter_cards()
+            preview_filter_name.config(text=" / ".join(FILTER_CATEGORIES.get(category.get(), {}).keys()))
         category_box.bind("<<ComboboxSelected>>", change_category)
-        filter_box.bind("<<ComboboxSelected>>",
-            lambda _e: preview_filter_name.config(text="Selected: " + effect.get()))
+        filter_box.bind("<<ComboboxSelected>>", lambda _e: choose_filter(effect.get()))
+        render_filter_cards()
 
         adjustment_vars = {
             "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
