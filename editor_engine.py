@@ -273,26 +273,33 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
     overlay = overlay or {}
     chain = []
     canvas_mode = adjustments.get("canvas_mode", "Fit")
+    resolution = adjustments.get("resolution", "1080p")
+    dimensions = {"720p": (1280, 720), "1080p": (1920, 1080),
+                  "1440p": (2560, 1440)}
+    width, height = dimensions.get(resolution, dimensions["1080p"])
     if fmt == "Vertical 9:16":
+        vwidth, vheight = height, width
         if canvas_mode == "Fill":
-            foreground = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
+            foreground = "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}".format(
+                vwidth, vheight, vwidth, vheight)
         elif canvas_mode == "Stretch":
-            foreground = "scale=1080:1920"
+            foreground = "scale={}:{}".format(vwidth, vheight)
         else:
-            foreground = "scale=1080:1920:force_original_aspect_ratio=decrease"
+            foreground = "scale={}:{}:force_original_aspect_ratio=decrease".format(vwidth, vheight)
         chain.append(
-            "[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
-            "crop=1080:1920,boxblur=24:8[blur];[fg]" + foreground +
-            "[front];[blur][front]overlay=(W-w)/2:(H-h)/2"
+            "[0:v]split=2[bg][fg];[bg]scale={}:{}:force_original_aspect_ratio=increase,"
+            "crop={}:{},boxblur=24:8[blur];[fg]".format(vwidth, vheight, vwidth, vheight) +
+            foreground + "[front];[blur][front]overlay=(W-w)/2:(H-h)/2"
         )
     elif fmt == "Landscape":
         if canvas_mode == "Fill":
-            chain.append("scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080")
+            chain.append("scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}".format(
+                width, height, width, height))
         elif canvas_mode == "Stretch":
-            chain.append("scale=1920:1080")
+            chain.append("scale={}:{}".format(width, height))
         else:
-            chain.append("scale=1920:1080:force_original_aspect_ratio=decrease,"
-                         "pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
+            chain.append("scale={}:{}:force_original_aspect_ratio=decrease,"
+                         "pad={}:{}:(ow-iw)/2:(oh-ih)/2".format(width, height, width, height))
     else:
         chain.append("setsar=1")
 
