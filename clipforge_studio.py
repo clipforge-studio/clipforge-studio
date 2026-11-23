@@ -1098,7 +1098,8 @@ class App:
                 chosen_adjustments["overlay_end"] = float(overlay_end.get())
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
-                                        "subtitle_position": subtitle_position.get()})
+                                        "subtitle_position": subtitle_position.get(),
+                                        "subtitle_font": subtitle_font.get()})
                 subtitle_path = resolve_subtitle_path()
                 graph = self.video_filter(self.format.get() if self.format.get() != "Both" else "Landscape",
                     effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
@@ -1341,7 +1342,7 @@ class App:
         tk.Label(overlay_tab, text="Font", bg="#172235", fg="#cbd5e1").grid(
             row=2, column=0, sticky="w", padx=14, pady=7)
         ttk.Combobox(overlay_tab, textvariable=overlay_font,
-            values=["Sans", "Serif", "Monospace"], state="readonly", width=18).grid(
+            values=["Sans", "Serif", "Monospace", "Arial", "Segoe UI", "Nirmala UI"], state="readonly", width=18).grid(
                 row=2, column=1, sticky="w", padx=14)
         tk.Label(overlay_tab, text="Position", bg="#172235", fg="#cbd5e1").grid(
             row=3, column=0, sticky="w", padx=14, pady=7)
@@ -1490,6 +1491,7 @@ class App:
         subtitle_outline = tk.DoubleVar(value=2)
         subtitle_color = tk.StringVar(value="white")
         subtitle_position = tk.StringVar(value="Bottom")
+        subtitle_font = tk.StringVar(value="Arial")
         subtitle_options = tk.Frame(subtitle_tab, bg="#172235")
         subtitle_options.pack(fill="x", padx=14, pady=10)
         tk.Label(subtitle_options, text="Font size", bg="#172235", fg="#cbd5e1").grid(
@@ -1510,6 +1512,11 @@ class App:
         ttk.Combobox(subtitle_options, textvariable=subtitle_position,
             values=["Bottom", "Top", "Center"], state="readonly", width=14).grid(
             row=3, column=1, sticky="w", padx=6)
+        tk.Label(subtitle_options, text="Font", bg="#172235", fg="#cbd5e1").grid(
+            row=4, column=0, sticky="w", padx=6, pady=5)
+        ttk.Combobox(subtitle_options, textvariable=subtitle_font,
+            values=["Arial", "Segoe UI", "Nirmala UI", "Noto Sans Bengali"],
+            state="readonly", width=18).grid(row=4, column=1, sticky="w", padx=6)
         subtitle_options.grid_columnconfigure(1, weight=1)
         tk.Label(subtitle_tab, text="SRT subtitles are burned into the exported video.",
             bg="#172235", fg="#94a3b8").pack(anchor="w", padx=14, pady=8)
@@ -1554,7 +1561,8 @@ class App:
                            "image_position": image_position.get(), "image": overlay_image.get() or None,
                            "text_start": overlay_start_value, "text_end": overlay_end_value,
                            "subtitle_color": subtitle_color.get(),
-                           "subtitle_position": subtitle_position.get()}
+                           "subtitle_position": subtitle_position.get(),
+                           "subtitle_font": subtitle_font.get()}
             except Exception:
                 messagebox.showerror(APP, "Check text size and subtitle file.", parent=win)
                 return
