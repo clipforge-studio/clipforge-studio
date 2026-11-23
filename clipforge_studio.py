@@ -1,4 +1,4 @@
-import os, re, shutil, threading, subprocess, queue, tkinter as tk, tempfile
+import os, re, json, shutil, threading, subprocess, queue, tkinter as tk, tempfile
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 
@@ -29,12 +29,18 @@ class App:
         self.files = {}
         self.busy = False
         self.out = str(Path.home() / "Downloads")
+        self.state_dir = Path(os.environ.get("APPDATA", str(Path.home()))) / "ClipForgeStudio"
+        self.state_file = self.state_dir / "session.json"
+        self.current_stage = "Ready"
+        self.show_logs = False
         self.ytdlp = locate("yt-dlp")
         self.ffmpeg = locate("ffmpeg")
         self.format = tk.StringVar(value="Landscape")
         self.status = tk.StringVar(value="Ready — download first, then choose how to split or edit.")
         self._style()
         self._build()
+        self.load_state()
+        root.protocol("WM_DELETE_WINDOW", self.on_close)
         root.after(100, self.poll)
 
     def _style(self):
@@ -153,6 +159,8 @@ class App:
                  font=("Segoe UI", 10, "bold")).pack(side="left")
         tk.Label(libhead, text="Select a completed video to edit", bg="#131e32", fg="#8192ad",
                  font=("Segoe UI", 8)).pack(side="left", padx=10)
+        self.button(libhead, "Import Video", self.import_video, "#0e9f83").pack(side="right", padx=6)
+        self.button(libhead, "Advanced Log", self.toggle_logs, "#344765").pack(side="right", padx=6)
         self.button(libhead, "Clear Queue", self.clear, "#344765").pack(side="right")
         self.tree = ttk.Treeview(library, columns=("name", "status", "file"), show="headings", height=7)
         self.tree.heading("name", text="VIDEO")
@@ -183,9 +191,13 @@ class App:
         self.status = tk.StringVar(value="Ready — download a video, then open an editing tool.")
         tk.Label(bottom, textvariable=self.status, bg="#0b1020", fg="#a5b4fc",
                  anchor="w", font=("Segoe UI", 8)).pack(fill="x")
-        self.log = tk.Text(bottom, height=3, bg="#080d18", fg="#8494ad",
+        self.progress_label = tk.Label(bottom, text="0%  •  Ready", bg="#0b1020",
+                                         fg="#a5b4fc", anchor="e", font=("Segoe UI", 8, "bold"))
+        self.progress_label.pack(fill="x")
+        self.log = tk.Text(bottom, height=4, bg="#080d18", fg="#8494ad",
                            font=("Consolas", 8), state="disabled", relief="flat")
         self.log.pack(fill="x", pady=(7, 0))
+        self.log.pack_forget()
 
     def go_home(self):
         self.url_entry_focus()
@@ -293,6 +305,79 @@ class App:
         finally:
             self.events.put(("finished",))
 
+    def toggle_logs(self):
+        self.show_logs = not self.show_logs
+        if self.show_logs:
+            self.log.pack(fill="x", pady=(7, 0))
+        else:
+            self.log.pack_forget()
+
+    def import_video(self):
+        paths = filedialog.askopenfilenames(
+            title="Import videos from this computer",
+            filetypes=[("Video files", "*.mp4 *.mkv *.mov *.avi *.webm *.m4v *.wmv"),
+                       ("All files", "*.*")])
+        for path in paths:
+            if not os.path.isfile(path):
+                continue
+            if any(existing == path for existing in self.files.values()):
+                continue
+            iid = self.tree.insert("", "end", values=(Path(path).name, "Imported", path))
+            self.files[iid] = path
+        if paths:
+            self.status.set(f"Imported {len(paths)} video file(s). Select one to edit.")
+            self.save_state()
+
+    def save_state(self):
+        try:
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+            rows = []
+            for iid in self.tree.get_children():
+                name, status, path = self.tree.item(iid, "values")
+                rows.append({"name": name, "status": status, "path": path})
+            data = {"output_folder": self.out, "rows": rows,
+                    "status": self.status.get(), "progress": float(self.pb["value"]),
+                    "stage": self.current_stage}
+            temp = self.state_file.with_suffix(".tmp")
+            temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            temp.replace(self.state_file)
+        except Exception:
+            pass
+
+    def load_state(self):
+        try:
+            if not self.state_file.is_file():
+                return
+            data = json.loads(self.state_file.read_text(encoding="utf-8"))
+            self.out = data.get("output_folder", self.out)
+            self.folder_label.config(text="Output: " + self.out)
+            for row in data.get("rows", []):
+                path = row.get("path", "")
+                status = row.get("status", "Imported")
+                if status in ("Downloading", "Converting to H.264"):
+                    status = "Interrupted — reopen to retry"
+                iid = self.tree.insert("", "end", values=(row.get("name", "Video"), status, path))
+                if path and os.path.isfile(path) and status not in ("Queued", "Download failed"):
+                    self.files[iid] = path
+            saved_status = data.get("status", "Previous session restored.")
+            self.status.set("Previous session restored — " + saved_status)
+            self.current_stage = "Previous session"
+            self.progress_label.config(text=f"{int(data.get('progress', 0))}%  •  Previous session")
+        except Exception:
+            self.status.set("Previous session could not be fully restored.")
+
+    def on_close(self):
+        if self.busy:
+            self.current_stage = "Interrupted — task stopped when app closed"
+            self.status.set("App closed during a task. Reopen to see saved history.")
+            for iid in self.tree.get_children():
+                vals = list(self.tree.item(iid, "values"))
+                if len(vals) > 1 and vals[1] in ("Downloading", "Converting to H.264"):
+                    vals[1] = "Interrupted — reopen to retry"
+                    self.tree.item(iid, values=vals)
+        self.save_state()
+        self.root.destroy()
+
     def paste(self):
         try:
             self.url.set(self.root.clipboard_get().strip())
@@ -348,7 +433,7 @@ class App:
         self.busy = True
         threading.Thread(target=self.download_worker, daemon=True).start()
 
-    def run_command(self, cmd):
+    def run_command(self, cmd, duration=None):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                 encoding="utf-8", errors="replace",
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -359,6 +444,11 @@ class App:
                 match = re.search(r"(\d+(?:\.\d+)?)%", line)
                 if match:
                     self.events.put(("progress", float(match.group(1))))
+                elif duration and duration > 0:
+                    stamp = re.search(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)", line)
+                    if stamp:
+                        seconds = int(stamp.group(1))*3600 + int(stamp.group(2))*60 + float(stamp.group(3))
+                        self.events.put(("progress", min(99.0, seconds / duration * 100)))
         return proc.wait()
 
     def download_worker(self):
@@ -385,12 +475,17 @@ class App:
                 # Normalize downloaded media to broadly compatible H.264/AAC MP4.
                 # This prevents AV1/VP9 playback failures in common Windows players.
                 converted = os.path.join(work, clean(Path(source).stem) + "_H264.mp4")
-                self.events.put(("status", "Converting to compatible H.264 MP4..."))
+                self.events.put(("stage", "Converting to H.264"))
+                try:
+                    source_duration = self.probe_duration(source)
+                except Exception:
+                    source_duration = None
+                self.events.put(("status", "Converting to H.264 MP4..."))
                 convert_cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
                                "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                                "-movflags", "+faststart", converted]
-                if self.run_command(convert_cmd) != 0 or not os.path.isfile(converted):
+                if self.run_command(convert_cmd, duration=source_duration) != 0 or not os.path.isfile(converted):
                     self.events.put(("row", iid, url[:90], "Conversion failed", source))
                     continue
                 source = converted
@@ -919,18 +1014,30 @@ class App:
                     self.log.config(state="disabled")
                 elif kind == "status":
                     self.status.set(event[1])
+                    self.save_state()
+                elif kind == "stage":
+                    self.current_stage = event[1]
+                    self.progress_label.config(text=f"{int(self.pb['value'])}%  •  {self.current_stage}")
+                    self.save_state()
                 elif kind == "progress":
                     self.pb["value"] = max(0, min(100, event[1]))
+                    self.progress_label.config(text=f"{int(self.pb['value'])}%  •  {self.current_stage}")
+                    self.save_state()
                 elif kind == "row":
                     _, iid, name, status, path = event
                     self.tree.item(iid, values=(name, status, path))
+                    self.save_state()
                 elif kind == "downloaded":
                     _, iid, path, name = event
                     self.files[iid] = path
                     self.tree.item(iid, values=(name[:90], "Downloaded", path))
+                    self.current_stage = "Completed"
+                    self.pb["value"] = 100
+                    self.progress_label.config(text="100%  •  Completed")
+                    self.save_state()
                 elif kind == "finished":
                     self.busy = False
-                    self.pb["value"] = 0
+                    self.save_state()
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
