@@ -10,6 +10,8 @@ This branch introduces a download-first workflow and early editing tools. It is 
 
 - Queue supported video URLs and download with `yt-dlp`.
 - Keep downloaded videos in a selectable output folder.
+- Convert downloaded AV1/VP9 videos to H.264 + AAC MP4 for improved Windows playback compatibility.
+- Open an in-app frame preview window with a seek slider, frame refresh, and a button to play the full video in the system media player.
 - Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Choose when to split after download.
 - Automatic split using a user-entered segment duration.
@@ -21,7 +23,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 ### Known limitations
 
 - The timeline is currently a simple clickable time ruler, not a full multi-track waveform editor.
-- It does not provide embedded video playback or frame-accurate visual scrubbing; use Preview Video to open the source in the system's media player.
+- The in-app preview currently extracts still frames at selected timestamps; it is not continuous embedded playback or frame-accurate scrubbing. Full playback opens in the system media player.
 - Timeline cut points are time-based; there is no drag-to-trim, clip rearrangement, transitions, or join tool yet.
 - Subtitle authoring and per-caption timing inside the app are not implemented; subtitles are imported from an existing SRT file and burned into the export.
 - Live preview of text, subtitles, and effects before export is not available.
