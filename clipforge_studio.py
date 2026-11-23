@@ -933,31 +933,117 @@ class App:
         self.button(info, "Undo Last Cut", lambda: (cuts.pop() if cuts else None, redraw()), "#475569").pack(side="right")
         self.button(info, "Preview Video", lambda: os.startfile(source), "#475569").pack(side="right", padx=6)
 
-        tk.Label(win, text="SUBTITLES", bg="#1f2937", fg="#cbd5e1",
-                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 3))
-        subrow = tk.Frame(win, bg="#1f2937")
-        subrow.pack(fill="x", padx=18)
+        tk.Label(win, text="CREATOR TOOLS", bg="#1f2937", fg="#cbd5e1",
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 5))
+        notebook = ttk.Notebook(win)
+        notebook.pack(fill="both", expand=True, padx=18, pady=5)
+        filter_tab = tk.Frame(notebook, bg="#172235")
+        adjust_tab = tk.Frame(notebook, bg="#172235")
+        overlay_tab = tk.Frame(notebook, bg="#172235")
+        subtitle_tab = tk.Frame(notebook, bg="#172235")
+        notebook.add(filter_tab, text="  Filters  ")
+        notebook.add(adjust_tab, text="  Adjust  ")
+        notebook.add(overlay_tab, text="  Text & Overlay  ")
+        notebook.add(subtitle_tab, text="  Subtitles  ")
+
+        category = tk.StringVar(value="Basic")
+        effect = tk.StringVar(value="Original")
+        tk.Label(filter_tab, text="Filter category", bg="#172235", fg="#cbd5e1").grid(
+            row=0, column=0, sticky="w", padx=14, pady=(14, 4))
+        category_box = ttk.Combobox(filter_tab, textvariable=category,
+            values=list(FILTER_CATEGORIES.keys()), state="readonly", width=24)
+        category_box.grid(row=1, column=0, sticky="w", padx=14)
+        tk.Label(filter_tab, text="Filter preset", bg="#172235", fg="#cbd5e1").grid(
+            row=0, column=1, sticky="w", padx=14, pady=(14, 4))
+        filter_box = ttk.Combobox(filter_tab, textvariable=effect,
+            values=list(FILTER_CATEGORIES["Basic"].keys()), state="readonly", width=30)
+        filter_box.grid(row=1, column=1, sticky="w", padx=14)
+        preview_filter_name = tk.Label(filter_tab, text="46 named presets across 7 categories",
+            bg="#172235", fg="#94a3b8", font=("Segoe UI", 9))
+        preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=12)
+        def change_category(_event=None):
+            choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
+            filter_box.configure(values=choices)
+            effect.set("Original" if "Original" in choices else choices[0])
+            preview_filter_name.config(text=" / ".join(choices))
+        category_box.bind("<<ComboboxSelected>>", change_category)
+        filter_box.bind("<<ComboboxSelected>>",
+            lambda _e: preview_filter_name.config(text="Selected: " + effect.get()))
+
+        adjustment_vars = {
+            "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
+            "saturation": tk.DoubleVar(value=1), "gamma": tk.DoubleVar(value=1),
+            "temperature": tk.DoubleVar(value=0), "tint": tk.DoubleVar(value=0),
+            "sharpen": tk.DoubleVar(value=0), "fade": tk.DoubleVar(value=0),
+            "vignette": tk.DoubleVar(value=0), "blur": tk.DoubleVar(value=0)
+        }
+        slider_specs = [
+            ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
+            ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
+            ("temperature", "Temperature", -1, 1), ("tint", "Tint", -1, 1),
+            ("sharpen", "Sharpen", 0, 2), ("fade", "Fade", 0, 1),
+            ("vignette", "Vignette", 0, 1), ("blur", "Blur", 0, 10)
+        ]
+        for index, (key, label, low, high) in enumerate(slider_specs):
+            row, col = divmod(index, 2)
+            cell = tk.Frame(adjust_tab, bg="#172235")
+            cell.grid(row=row, column=col, sticky="ew", padx=12, pady=5)
+            adjust_tab.grid_columnconfigure(col, weight=1)
+            tk.Label(cell, text=label, bg="#172235", fg="#dbeafe").pack(anchor="w")
+            ttk.Scale(cell, from_=low, to=high, variable=adjustment_vars[key],
+                      orient="horizontal").pack(fill="x", pady=2)
+        self.button(adjust_tab, "Reset Adjustments",
+            lambda: [v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
+                            "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
+                     for k,v in adjustment_vars.items()], "#475569").grid(
+                         row=5, column=0, sticky="w", padx=12, pady=8)
+
+        overlay_text = tk.StringVar()
+        overlay_size = tk.StringVar(value="48")
+        overlay_position = tk.StringVar(value="Bottom")
+        overlay_color = tk.StringVar(value="white")
+        overlay_background = tk.BooleanVar(value=False)
+        overlay_font = tk.StringVar(value="Sans")
+        for row, (label, variable) in enumerate([("Text", overlay_text), ("Font size", overlay_size)]):
+            tk.Label(overlay_tab, text=label, bg="#172235", fg="#cbd5e1").grid(
+                row=row, column=0, sticky="w", padx=14, pady=7)
+            ttk.Entry(overlay_tab, textvariable=variable, width=36).grid(
+                row=row, column=1, sticky="w", padx=14, pady=7)
+        tk.Label(overlay_tab, text="Font", bg="#172235", fg="#cbd5e1").grid(
+            row=2, column=0, sticky="w", padx=14, pady=7)
+        ttk.Combobox(overlay_tab, textvariable=overlay_font,
+            values=["Sans", "Serif", "Monospace"], state="readonly", width=18).grid(
+                row=2, column=1, sticky="w", padx=14)
+        tk.Label(overlay_tab, text="Position", bg="#172235", fg="#cbd5e1").grid(
+            row=3, column=0, sticky="w", padx=14, pady=7)
+        ttk.Combobox(overlay_tab, textvariable=overlay_position,
+            values=["Top", "Center", "Bottom"], state="readonly", width=18).grid(
+            row=3, column=1, sticky="w", padx=14)
+        tk.Label(overlay_tab, text="Text color", bg="#172235", fg="#cbd5e1").grid(
+            row=4, column=0, sticky="w", padx=14, pady=7)
+        ttk.Combobox(overlay_tab, textvariable=overlay_color,
+            values=["white", "black", "yellow", "red", "blue", "lime", "cyan", "magenta"],
+            state="readonly", width=18).grid(row=4, column=1, sticky="w", padx=14)
+        tk.Checkbutton(overlay_tab, text="Background box behind text",
+            variable=overlay_background, bg="#172235", fg="#cbd5e1",
+            selectcolor="#0b1220", activebackground="#172235").grid(
+                row=5, column=1, sticky="w", padx=14, pady=7)
+        tk.Label(overlay_tab, text="Text is rendered into the exported video.",
+            bg="#172235", fg="#94a3b8").grid(row=6, column=0, columnspan=2,
+                                             sticky="w", padx=14, pady=8)
+
         subtitle = tk.StringVar()
+        tk.Label(subtitle_tab, text="Import SRT subtitle file", bg="#172235",
+                 fg="#cbd5e1").pack(anchor="w", padx=14, pady=(16, 6))
+        subrow = tk.Frame(subtitle_tab, bg="#172235")
+        subrow.pack(fill="x", padx=14)
         ttk.Entry(subrow, textvariable=subtitle).pack(side="left", fill="x", expand=True)
-        self.button(subrow, "Import SRT", lambda: subtitle.set(
+        self.button(subrow, "Browse SRT", lambda: subtitle.set(
             filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()),
             "#475569").pack(side="left", padx=6)
+        tk.Label(subtitle_tab, text="Subtitles are burned into the exported video.",
+            bg="#172235", fg="#94a3b8").pack(anchor="w", padx=14, pady=12)
 
-        tk.Label(win, text="EFFECTS & TITLE", bg="#1f2937", fg="#cbd5e1",
-                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 3))
-        opts = tk.Frame(win, bg="#1f2937")
-        opts.pack(fill="x", padx=18)
-        effect, text, size, position = tk.StringVar(value="None"), tk.StringVar(), tk.StringVar(value="48"), tk.StringVar(value="Bottom")
-        tk.Label(opts, text="Filter", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=0, sticky="w")
-        ttk.Combobox(opts, textvariable=effect, values=["None", "Black & White", "Warm", "Vintage", "Sharpen"],
-                     state="readonly", width=16).grid(row=1, column=0, padx=(0, 10), sticky="w")
-        tk.Label(opts, text="Title / text overlay", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=1, sticky="w")
-        ttk.Entry(opts, textvariable=text, width=25).grid(row=1, column=1, padx=(0, 10), sticky="w")
-        tk.Label(opts, text="Size", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=2, sticky="w")
-        ttk.Entry(opts, textvariable=size, width=6).grid(row=1, column=2, padx=(0, 10), sticky="w")
-        tk.Label(opts, text="Position", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=3, sticky="w")
-        ttk.Combobox(opts, textvariable=position, values=["Top", "Center", "Bottom"],
-                     state="readonly", width=10).grid(row=1, column=3, sticky="w")
         tk.Label(win, text="Output format: " + self.format.get() + "  •  H.264 MP4 export",
                  bg="#1f2937", fg="#94a3b8").pack(anchor="w", padx=18, pady=12)
 
