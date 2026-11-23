@@ -1021,8 +1021,8 @@ class App:
 
         win = tk.Toplevel(self.root)
         win.title("ClipForge Studio — Timeline Editor")
-        win.geometry("1040x880")
-        win.minsize(920, 760)
+        win.geometry("1000x720")
+        win.minsize(900, 640)
         win.configure(bg="#1f2937")
         win.transient(self.root)
         tk.Label(win, text="Timeline Editor", bg="#1f2937", fg="white",
@@ -1066,7 +1066,7 @@ class App:
                  font=("Consolas", 11, "bold")).pack(side="left", padx=7)
         self.button(info, "Undo Last Cut", lambda: (cuts.pop() if cuts else None, redraw()), "#475569").pack(side="right")
         self.button(info, "Preview Current Look", lambda: preview_current_look(), "#0f766e").pack(side="right", padx=6)
-        preview_frame = tk.Frame(win, bg="#0b1220", height=150)
+        preview_frame = tk.Frame(win, bg="#0b1220", height=120)
         preview_frame.pack(fill="x", padx=18, pady=(4, 8))
         preview_frame.pack_propagate(False)
         preview_image_label = tk.Label(preview_frame, text="Choose a filter or adjustment, then preview your look.",
@@ -1130,14 +1130,28 @@ class App:
                  font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 5))
         notebook = ttk.Notebook(win)
         notebook.pack(fill="both", expand=True, padx=18, pady=5)
-        filter_tab = tk.Frame(notebook, bg="#172235")
-        adjust_tab = tk.Frame(notebook, bg="#172235")
-        overlay_tab = tk.Frame(notebook, bg="#172235")
-        subtitle_tab = tk.Frame(notebook, bg="#172235")
-        notebook.add(filter_tab, text="  Filters  ")
-        notebook.add(adjust_tab, text="  Adjust  ")
-        notebook.add(overlay_tab, text="  Text & Overlay  ")
-        notebook.add(subtitle_tab, text="  Subtitles  ")
+        def make_scrollable_tab():
+            host = tk.Frame(notebook, bg="#172235")
+            canvas_tab = tk.Canvas(host, bg="#172235", highlightthickness=0)
+            scrollbar = ttk.Scrollbar(host, orient="vertical", command=canvas_tab.yview)
+            inner = tk.Frame(canvas_tab, bg="#172235")
+            window_id = canvas_tab.create_window((0, 0), window=inner, anchor="nw")
+            inner.bind("<Configure>", lambda _e, c=canvas_tab:
+                       c.configure(scrollregion=c.bbox("all")))
+            canvas_tab.configure(yscrollcommand=scrollbar.set)
+            canvas_tab.bind("<Configure>", lambda e, c=canvas_tab, w=window_id:
+                            c.itemconfigure(w, width=e.width))
+            canvas_tab.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+            return host, inner
+        filter_host, filter_tab = make_scrollable_tab()
+        adjust_host, adjust_tab = make_scrollable_tab()
+        overlay_host, overlay_tab = make_scrollable_tab()
+        subtitle_host, subtitle_tab = make_scrollable_tab()
+        notebook.add(filter_host, text="  Filters  ")
+        notebook.add(adjust_host, text="  Adjust  ")
+        notebook.add(overlay_host, text="  Text & Overlay  ")
+        notebook.add(subtitle_host, text="  Subtitles  ")
 
         category = tk.StringVar(value="Basic")
         effect = tk.StringVar(value="Original")
