@@ -35,8 +35,8 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title(APP)
-        root.geometry("1060x760")
-        root.minsize(900, 650)
+        root.geometry("1040x700")
+        root.minsize(900, 620)
         root.configure(bg="#111827")
         self.events = queue.Queue()
         self.jobs = []
@@ -1021,8 +1021,8 @@ class App:
 
         win = tk.Toplevel(self.root)
         win.title("ClipForge Studio — Timeline Editor")
-        win.geometry("1000x720")
-        win.minsize(900, 640)
+        win.geometry("980x680")
+        win.minsize(860, 600)
         win.configure(bg="#1f2937")
         win.transient(self.root)
         tk.Label(win, text="Timeline Editor", bg="#1f2937", fg="white",
