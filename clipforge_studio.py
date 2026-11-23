@@ -431,6 +431,9 @@ class App:
             messagebox.showerror(APP, "Could not open output folder: " + str(exc))
 
     def scan_output_folder(self):
+        if self.busy:
+            messagebox.showinfo(APP, "Wait until the current task finishes.")
+            return
         folder = filedialog.askdirectory(title="Scan a folder for videos", initialdir=self.out)
         if not folder:
             return
@@ -575,6 +578,9 @@ class App:
         self.save_state()
 
     def change(self):
+        if self.busy:
+            messagebox.showinfo(APP, "Wait until the current export or download finishes.")
+            return
         folder = filedialog.askdirectory(initialdir=self.out)
         if folder:
             self.out = folder
