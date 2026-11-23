@@ -322,10 +322,10 @@ class App:
             except Exception:
                 messagebox.showerror(APP, "Enter valid fade durations within the video length.", parent=win)
                 return
-            win.destroy()
             if self.busy:
-                messagebox.showinfo(APP, "Wait for the current task to finish.")
+                messagebox.showinfo(APP, "Wait for the current task to finish.", parent=win)
                 return
+            win.destroy()
             self.busy = True
             threading.Thread(target=self.audio_worker,
                              args=(source, volume.get()/100.0, fi, fo, duration,
@@ -357,7 +357,10 @@ class App:
                         video_graph = vf
                     else:
                         video_graph = "[0:v]" + vf + "[vout]"
-                    probe = subprocess.run([locate("ffprobe"), "-v", "error",
+                    ffprobe = locate("ffprobe")
+                    if not ffprobe:
+                        raise RuntimeError("ffprobe is required to mix background music.")
+                    probe = subprocess.run([ffprobe, "-v", "error",
                         "-select_streams", "a:0", "-show_entries", "stream=index",
                         "-of", "csv=p=0", source], capture_output=True, text=True,
                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
