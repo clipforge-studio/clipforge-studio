@@ -951,6 +951,10 @@ class App:
                     "position": overlay_position.get(), "color": overlay_color.get(),
                     "background": overlay_background.get(), "font": overlay_font.get()}
                 chosen_adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                chosen_adjustments["subtitle_size"] = subtitle_size.get()
+                chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
+                chosen_overlay.update({"subtitle_color": subtitle_color.get(),
+                                        "subtitle_position": subtitle_position.get()})
                 graph = self.video_filter(self.format.get() if self.format.get() != "Both" else "Landscape",
                     effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
                     subtitle.get() or None, chosen_adjustments, chosen_overlay, overlay_image.get() or None)
@@ -1109,8 +1113,33 @@ class App:
         self.button(subrow, "Browse SRT", lambda: subtitle.set(
             filedialog.askopenfilename(filetypes=[("Subtitle files", "*.srt")]) or subtitle.get()),
             "#475569").pack(side="left", padx=6)
-        tk.Label(subtitle_tab, text="Subtitles are burned into the exported video.",
-            bg="#172235", fg="#94a3b8").pack(anchor="w", padx=14, pady=12)
+        subtitle_size = tk.DoubleVar(value=28)
+        subtitle_outline = tk.DoubleVar(value=2)
+        subtitle_color = tk.StringVar(value="white")
+        subtitle_position = tk.StringVar(value="Bottom")
+        subtitle_options = tk.Frame(subtitle_tab, bg="#172235")
+        subtitle_options.pack(fill="x", padx=14, pady=10)
+        tk.Label(subtitle_options, text="Font size", bg="#172235", fg="#cbd5e1").grid(
+            row=0, column=0, sticky="w", padx=6, pady=5)
+        ttk.Scale(subtitle_options, from_=10, to=72, variable=subtitle_size,
+            orient="horizontal").grid(row=0, column=1, sticky="ew", padx=6)
+        tk.Label(subtitle_options, text="Outline", bg="#172235", fg="#cbd5e1").grid(
+            row=1, column=0, sticky="w", padx=6, pady=5)
+        ttk.Scale(subtitle_options, from_=0, to=8, variable=subtitle_outline,
+            orient="horizontal").grid(row=1, column=1, sticky="ew", padx=6)
+        tk.Label(subtitle_options, text="Color", bg="#172235", fg="#cbd5e1").grid(
+            row=2, column=0, sticky="w", padx=6, pady=5)
+        ttk.Combobox(subtitle_options, textvariable=subtitle_color,
+            values=["white", "yellow", "cyan", "red", "green"],
+            state="readonly", width=14).grid(row=2, column=1, sticky="w", padx=6)
+        tk.Label(subtitle_options, text="Position", bg="#172235", fg="#cbd5e1").grid(
+            row=3, column=0, sticky="w", padx=6, pady=5)
+        ttk.Combobox(subtitle_options, textvariable=subtitle_position,
+            values=["Bottom", "Top", "Center"], state="readonly", width=14).grid(
+            row=3, column=1, sticky="w", padx=6)
+        subtitle_options.grid_columnconfigure(1, weight=1)
+        tk.Label(subtitle_tab, text="SRT subtitles are burned into the exported video.",
+            bg="#172235", fg="#94a3b8").pack(anchor="w", padx=14, pady=8)
 
         tk.Label(win, text="Output format: " + self.format.get() + "  •  H.264 MP4 export",
                  bg="#1f2937", fg="#94a3b8").pack(anchor="w", padx=18, pady=12)
@@ -1126,6 +1155,8 @@ class App:
                 if subtitle.get() and not os.path.isfile(subtitle.get()):
                     raise ValueError()
                 adjustments = {key: value.get() for key, value in adjustment_vars.items()}
+                adjustments["subtitle_size"] = subtitle_size.get()
+                adjustments["subtitle_outline"] = subtitle_outline.get()
                 if overlay_image.get() and not os.path.isfile(overlay_image.get()):
                     raise ValueError()
                 adjustments["overlay_opacity"] = image_opacity.get()
@@ -1133,7 +1164,9 @@ class App:
                 overlay = {"text": overlay_text.get(), "text_size": font_size,
                            "position": overlay_position.get(), "color": overlay_color.get(),
                            "background": overlay_background.get(), "font": overlay_font.get(),
-                           "image_position": image_position.get(), "image": overlay_image.get() or None}
+                           "image_position": image_position.get(), "image": overlay_image.get() or None,
+                           "subtitle_color": subtitle_color.get(),
+                           "subtitle_position": subtitle_position.get()}
             except Exception:
                 messagebox.showerror(APP, "Check text size and subtitle file.", parent=win)
                 return
