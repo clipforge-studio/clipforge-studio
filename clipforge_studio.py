@@ -1194,6 +1194,11 @@ class App:
                     pass
         source_key = hashlib.sha1((os.path.abspath(source) +
             str(os.path.getmtime(source))).encode("utf-8", errors="ignore")).hexdigest()[:10]
+        def mark_filter_thumbnail_unavailable(name, token):
+            if token == thumbnail_state["token"] and win.winfo_exists():
+                tile = filter_tile_buttons.get(name)
+                if tile:
+                    tile.configure(text=name + "\nPreview unavailable")
         def create_filter_thumbnails(category_name, choices, token):
             if not self.ffmpeg:
                 return
@@ -1218,8 +1223,15 @@ class App:
                     if result.returncode == 0 and os.path.isfile(path):
                         self.root.after(0, lambda n=name, p=path, t=token:
                                         apply_filter_thumbnail(n, p, t))
+                    else:
+                        self.root.after(0, lambda n=name, t=token:
+                                        mark_filter_thumbnail_unavailable(n, t))
                 except Exception:
-                    continue
+                    try:
+                        self.root.after(0, lambda n=name, t=token:
+                                        mark_filter_thumbnail_unavailable(n, t))
+                    except Exception:
+                        pass
         def render_filter_cards():
             for child in filter_cards.winfo_children():
                 child.destroy()
