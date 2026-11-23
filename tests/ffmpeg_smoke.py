@@ -59,6 +59,30 @@ total += 1
 if result.returncode:
     failures.append(("Overlay", "PNG logo compositing", result.stderr[-1200:]))
 
+transform_graph = build_filter_chain("Landscape", "Original",
+    {"rotation": "90° CW", "flip_h": True, "flip_v": False})
+command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+           *source, "-vf", transform_graph, "-frames:v", "1", "-f", "null", "-"]
+result = subprocess.run(command, capture_output=True, text=True)
+total += 1
+if result.returncode:
+    failures.append(("Adjust", "Rotate and mirror", result.stderr[-1200:]))
+
+import tempfile
+from pathlib import Path
+subtitle_file = Path(tempfile.gettempdir()) / "clipforge_smoke.srt"
+subtitle_file.write_text("1\n00:00:00,000 --> 00:00:01,000\nClipForge subtitle test\n", encoding="utf-8")
+subtitle_graph = build_filter_chain("Landscape", "Original",
+    {"subtitle_size": 26, "subtitle_outline": 2},
+    {"subtitle_color": "yellow", "subtitle_position": "Bottom"},
+    subtitle=str(subtitle_file))
+command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+           *source, "-vf", subtitle_graph, "-frames:v", "1", "-f", "null", "-"]
+result = subprocess.run(command, capture_output=True, text=True)
+total += 1
+if result.returncode:
+    failures.append(("Subtitles", "SRT burn-in and styling", result.stderr[-1200:]))
+
 print("FFmpeg filter smoke tests: {}/{} passed".format(total-len(failures), total))
 if failures:
     for category, preset, error in failures:
