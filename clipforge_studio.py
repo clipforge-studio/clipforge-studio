@@ -1603,8 +1603,6 @@ class App:
                 cmd += ["-c:v", "libx264", *self.encoding_args(),
                         "-c:a", "aac", "-b:a", "160k",
                         "-movflags", "+faststart"]
-                if overlay_image_path:
-                    cmd += ["-shortest"]
                 if cuts:
                     cmd += ["-f", "segment", "-segment_times", ",".join(
                                 f"{x / max(0.5, speed):.3f}" for x in cuts),
