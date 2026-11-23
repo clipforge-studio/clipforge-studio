@@ -192,6 +192,18 @@ class App:
                     self.events.put(("row", iid, url[:90], "No media found", ""))
                     continue
                 source = max(media, key=os.path.getmtime)
+                # Normalize downloaded media to broadly compatible H.264/AAC MP4.
+                # This prevents AV1/VP9 playback failures in common Windows players.
+                converted = os.path.join(work, clean(Path(source).stem) + "_H264.mp4")
+                self.events.put(("status", "Converting to compatible H.264 MP4..."))
+                convert_cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
+                               "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                               "-movflags", "+faststart", converted]
+                if self.run_command(convert_cmd) != 0 or not os.path.isfile(converted):
+                    self.events.put(("row", iid, url[:90], "Conversion failed", source))
+                    continue
+                source = converted
                 self.events.put(("downloaded", iid, source, os.path.basename(source)))
             self.events.put(("status", "Downloads finished. Select a video, then choose Split or Open Full Editor."))
         except Exception as exc:
