@@ -59,6 +59,21 @@ total += 1
 if result.returncode:
     failures.append(("Overlay", "PNG logo compositing", result.stderr[-1200:]))
 
+for fmt in ("Landscape", "Vertical 9:16"):
+    for mode in ("Fit", "Fill", "Stretch"):
+        graph = build_filter_chain(fmt, "Original", {"canvas_mode": mode})
+        if fmt == "Vertical 9:16":
+            command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                *source, "-filter_complex", graph, "-map", "[vout]",
+                "-frames:v", "1", "-f", "null", "-"]
+        else:
+            command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                *source, "-vf", graph, "-frames:v", "1", "-f", "null", "-"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        total += 1
+        if result.returncode:
+            failures.append(("Canvas", fmt + " / " + mode, result.stderr[-1200:]))
+
 fade_graph = build_filter_chain("Landscape", "Original",
     {"video_fade_in": 0.1, "video_fade_out": 0.1, "duration": 0.3})
 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
