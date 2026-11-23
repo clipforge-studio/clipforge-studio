@@ -28,6 +28,8 @@ class App:
         self.jobs = []
         self.files = {}
         self.busy = False
+        self.active_process = None
+        self.closing = False
         self.out = str(Path.home() / "Downloads")
         self.state_dir = Path(os.environ.get("APPDATA", str(Path.home()))) / "ClipForgeStudio"
         self.state_file = self.state_dir / "session.json"
@@ -367,6 +369,16 @@ class App:
             self.status.set("Previous session could not be fully restored.")
 
     def on_close(self):
+        self.closing = True
+        if self.active_process and self.active_process.poll() is None:
+            try:
+                self.active_process.terminate()
+                try:
+                    self.active_process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.active_process.kill()
+            except Exception:
+                pass
         if self.busy:
             self.current_stage = "Interrupted — task stopped when app closed"
             self.status.set("App closed during a task. Reopen to see saved history.")
@@ -435,21 +447,34 @@ class App:
 
     def run_command(self, cmd, duration=None):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                encoding="utf-8", errors="replace",
+                                encoding="utf-8", errors="replace", bufsize=1,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        for line in proc.stdout:
-            line = line.rstrip()
-            if line:
+        self.active_process = proc
+        try:
+            if self.closing:
+                proc.terminate()
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
                 self.events.put(("log", line))
+                # yt-dlp reports percentages; FFmpeg -progress reports elapsed time in microseconds.
                 match = re.search(r"(\d+(?:\.\d+)?)%", line)
                 if match:
                     self.events.put(("progress", float(match.group(1))))
                 elif duration and duration > 0:
-                    stamp = re.search(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)", line)
-                    if stamp:
+                    out_time = re.search(r"out_time_ms=(\d+)", line)
+                    stamp = re.search(r"(?:out_time|time)=(\d+):(\d+):(\d+(?:\.\d+)?)", line)
+                    if out_time:
+                        seconds = int(out_time.group(1)) / 1000000.0
+                        self.events.put(("progress", min(99.0, seconds / duration * 100)))
+                    elif stamp:
                         seconds = int(stamp.group(1))*3600 + int(stamp.group(2))*60 + float(stamp.group(3))
                         self.events.put(("progress", min(99.0, seconds / duration * 100)))
-        return proc.wait()
+            return proc.wait()
+        finally:
+            if self.active_process is proc:
+                self.active_process = None
 
     def download_worker(self):
         try:
@@ -488,7 +513,7 @@ class App:
                 convert_cmd = [self.ffmpeg, "-y", "-i", source, "-map", "0:v:0", "-map", "0:a?",
                                "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
                                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
-                               "-movflags", "+faststart", converted]
+                               "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", converted]
                 if self.run_command(convert_cmd, duration=source_duration) != 0 or not os.path.isfile(converted):
                     self.events.put(("row", iid, url[:90], "Conversion failed", source))
                     continue
