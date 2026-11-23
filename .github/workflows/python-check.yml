@@ -1,4 +1,4 @@
-name: Python syntax check
+name: Python and FFmpeg checks
 
 on:
   push:
@@ -7,12 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  compile:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile application
-        run: python -m py_compile clipforge_studio.py
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Compile application and engine
+        run: python -m py_compile clipforge_studio.py editor_engine.py
+      - name: Run editor unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Run FFmpeg filter smoke tests
+        run: python tests/ffmpeg_smoke.py
