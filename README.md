@@ -35,7 +35,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Image and logo overlays from PNG/WebP/JPG/GIF (including animated GIF stickers) with opacity, scale, five placement positions, and start/end timing.
 - Text overlays can be timed to appear only during a selected portion of the video.
 - Text overlay with font family, size, color, outline/shadow, background box, and top/center/bottom placement.
-- SRT subtitle burn-in with adjustable font size, color, outline, and alignment.
+- Import SRT or author multiple captions in-app with per-caption start/end times; burn them in with adjustable font size, color, outline, and alignment.
 - Image-frame preview that renders the selected filter, adjustments, text, subtitle, and logo overlay before export.
 - Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, vertical flip, playback speed, video fade-in/out, and canvas fit/fill/stretch.
 - Audio tools: original audio volume, fade-in/out, and optional looping background music mixed with the source audio.
