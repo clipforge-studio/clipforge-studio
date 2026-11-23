@@ -272,15 +272,27 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         preset = "Original"
     overlay = overlay or {}
     chain = []
+    canvas_mode = adjustments.get("canvas_mode", "Fit")
     if fmt == "Vertical 9:16":
+        if canvas_mode == "Fill":
+            foreground = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
+        elif canvas_mode == "Stretch":
+            foreground = "scale=1080:1920"
+        else:
+            foreground = "scale=1080:1920:force_original_aspect_ratio=decrease"
         chain.append(
             "[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
-            "crop=1080:1920,boxblur=24:8[blur];[fg]scale=1080:1920:"
-            "force_original_aspect_ratio=decrease[front];[blur][front]overlay=(W-w)/2:(H-h)/2"
+            "crop=1080:1920,boxblur=24:8[blur];[fg]" + foreground +
+            "[front];[blur][front]overlay=(W-w)/2:(H-h)/2"
         )
     elif fmt == "Landscape":
-        chain.append("scale=1920:1080:force_original_aspect_ratio=decrease,"
-                     "pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
+        if canvas_mode == "Fill":
+            chain.append("scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080")
+        elif canvas_mode == "Stretch":
+            chain.append("scale=1920:1080")
+        else:
+            chain.append("scale=1920:1080:force_original_aspect_ratio=decrease,"
+                         "pad=1920:1080:(ow-iw)/2:(oh-ih)/2")
     else:
         chain.append("setsar=1")
 
