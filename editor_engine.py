@@ -268,6 +268,25 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         raise ValueError("Unknown filter preset: " + str(preset))
     chain.extend(selected)
 
+    rotation = adjustments.get("rotation", "None")
+    transforms = []
+    if rotation == "90° CW":
+        transforms.append("transpose=clock")
+    elif rotation == "180°":
+        transforms.extend(["hflip", "vflip"])
+    elif rotation == "90° CCW":
+        transforms.append("transpose=cclock")
+    if adjustments.get("flip_h", False):
+        transforms.append("hflip")
+    if adjustments.get("flip_v", False):
+        transforms.append("vflip")
+    if transforms:
+        transform_chain = ",".join(transforms)
+        if fmt == "Vertical 9:16":
+            chain[0] = chain[0].replace("[0:v]", "[0:v]" + transform_chain + ",", 1)
+        else:
+            chain[0] = transform_chain + "," + chain[0]
+
     def number(key, default, low, high):
         try:
             value = float(adjustments.get(key, default))
