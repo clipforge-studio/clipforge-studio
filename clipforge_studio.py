@@ -300,6 +300,8 @@ class App:
         music_path = tk.StringVar()
         fade_in = tk.StringVar(value="0")
         fade_out = tk.StringVar(value="0")
+        music_fade_in = tk.StringVar(value="0")
+        music_fade_out = tk.StringVar(value="0")
         tk.Label(win, text="Original audio volume (%)", bg="#1f2937", fg="#cbd5e1").pack(anchor="w", padx=20)
         ttk.Scale(win, from_=0, to=200, variable=volume, orient="horizontal", length=420).pack(padx=20, pady=8)
         vol_label = tk.Label(win, text="100%", bg="#1f2937", fg="#a5b4fc")
@@ -311,6 +313,13 @@ class App:
         tk.Label(fields, text="Fade out (seconds)", bg="#1f2937", fg="#cbd5e1").grid(row=0, column=1, sticky="w", padx=12)
         ttk.Entry(fields, textvariable=fade_in, width=12).grid(row=1, column=0, sticky="w")
         ttk.Entry(fields, textvariable=fade_out, width=12).grid(row=1, column=1, sticky="w", padx=12)
+        tk.Label(fields, text="Music fade in (seconds)", bg="#1f2937", fg="#cbd5e1").grid(
+            row=2, column=0, sticky="w", pady=(10, 0))
+        tk.Label(fields, text="Music fade out (seconds)", bg="#1f2937", fg="#cbd5e1").grid(
+            row=2, column=1, sticky="w", padx=12, pady=(10, 0))
+        ttk.Entry(fields, textvariable=music_fade_in, width=12).grid(row=3, column=0, sticky="w")
+        ttk.Entry(fields, textvariable=music_fade_out, width=12).grid(
+            row=3, column=1, sticky="w", padx=12)
         tk.Label(win, text="Background music (optional)", bg="#1f2937", fg="#cbd5e1").pack(
             anchor="w", padx=20, pady=(10, 4))
         music_row = tk.Frame(win, bg="#1f2937")
@@ -328,7 +337,8 @@ class App:
         def export_audio():
             try:
                 fi, fo = float(fade_in.get()), float(fade_out.get())
-                if fi < 0 or fo < 0 or fi + fo > duration:
+                mfi, mfo = float(music_fade_in.get()), float(music_fade_out.get())
+                if min(fi, fo, mfi, mfo) < 0 or fi + fo > duration or mfi + mfo > duration:
                     raise ValueError()
                 if music_path.get() and not os.path.isfile(music_path.get()):
                     raise ValueError()
@@ -347,12 +357,14 @@ class App:
             self.set_export_controls(False)
             threading.Thread(target=self.audio_worker,
                              args=(source, selected_volume, fi, fo, duration,
-                                   selected_music, selected_music_volume, selected_format),
+                                   selected_music, selected_music_volume, selected_format,
+                                   mfi, mfo),
                              daemon=True).start()
         self.button(win, "Export Audio Adjustments", export_audio, "#0f766e").pack(anchor="e", padx=20, pady=18)
 
     def audio_worker(self, source, volume, fade_in, fade_out, duration,
-                     music_path=None, music_volume=0.35, selected_format="Landscape"):
+                     music_path=None, music_volume=0.35, selected_format="Landscape",
+                     music_fade_in=0, music_fade_out=0):
         try:
             filters = [f"volume={volume:.3f}"]
             if fade_in > 0:
@@ -384,7 +396,8 @@ class App:
                     has_audio = bool(probe.stdout.strip())
                     graph_parts = [video_graph,
                         build_audio_mix_graph(has_audio, volume, music_volume,
-                                              fade_in, fade_out, duration)]
+                                              fade_in, fade_out, duration,
+                                              music_fade_in, music_fade_out)]
                     cmd += ["-filter_complex", ";".join(graph_parts),
                             "-map", "[vout]", "-map", "[aout]", "-shortest"]
                 else:
