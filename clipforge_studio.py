@@ -1081,6 +1081,8 @@ class App:
                 chosen_adjustments["subtitle_size"] = subtitle_size.get()
                 chosen_adjustments["outline"] = text_outline.get()
                 chosen_adjustments["shadow"] = text_shadow.get()
+                chosen_adjustments["overlay_start"] = float(overlay_start.get())
+                chosen_adjustments["overlay_end"] = float(overlay_end.get())
                 chosen_adjustments["subtitle_outline"] = subtitle_outline.get()
                 chosen_overlay.update({"subtitle_color": subtitle_color.get(),
                                         "subtitle_position": subtitle_position.get()})
