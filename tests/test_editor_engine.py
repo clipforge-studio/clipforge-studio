@@ -53,6 +53,10 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("transpose=clock", graph)
         self.assertIn("hflip", graph)
 
+    def test_speed_changes_video_timestamps(self):
+        graph = build_filter_chain("Original", "Original", {"speed": 1.5})
+        self.assertIn("setpts=PTS/1.5000", graph)
+
     def test_video_fade_in_and_out_are_applied(self):
         graph = build_filter_chain("Original", "Original",
             {"video_fade_in": 1.5, "video_fade_out": 2, "duration": 10})
