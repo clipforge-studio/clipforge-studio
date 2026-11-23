@@ -87,12 +87,13 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("Alignment=8", graph)
 
     def test_audio_mix_graph_includes_original_and_music(self):
-        graph = build_audio_mix_graph(True, 0.8, 0.35, 1.5, 2, 30)
+        graph = build_audio_mix_graph(True, 0.8, 0.35, 1.5, 2, 30, 0.5, 1.25)
         self.assertIn("[0:a]volume=0.800", graph)
-        self.assertIn("[1:a]volume=0.350", graph)
+        self.assertIn("[1:a]volume=0.350,afade=t=in:st=0:d=0.500", graph)
         self.assertIn("amix=inputs=2", graph)
-        self.assertIn("afade=t=in", graph)
+        self.assertIn("[0:a]volume=0.800,afade=t=in", graph)
         self.assertIn("afade=t=out:st=28.000:d=2.000", graph)
+        self.assertIn("afade=t=out:st=28.750:d=1.250", graph)
 
     def test_music_only_graph_works_without_source_audio(self):
         graph = build_audio_mix_graph(False, 1, 0.5)
