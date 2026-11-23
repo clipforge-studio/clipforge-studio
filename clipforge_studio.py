@@ -505,7 +505,12 @@ class App:
                 source = max(media, key=os.path.getmtime)
                 # Normalize downloaded media to broadly compatible H.264/AAC MP4.
                 # This prevents AV1/VP9 playback failures in common Windows players.
-                converted = os.path.join(work, clean(Path(source).stem) + "_H264.mp4")
+                # Keep temporary source files in the work folder, but place the finished video
+                # directly in the selected output folder so users can find it easily.
+                converted_name = clean(Path(source).stem) + "_H264.mp4"
+                converted = os.path.join(self.out, converted_name)
+                if os.path.abspath(converted) == os.path.abspath(source):
+                    converted = os.path.join(self.out, clean(Path(source).stem) + "_H264_Export.mp4")
                 self.events.put(("stage", "Converting to H.264"))
                 try:
                     source_duration = self.probe_duration(source)
@@ -1070,6 +1075,10 @@ class App:
                     _, iid, path, name = event
                     self.files[iid] = path
                     self.tree.item(iid, values=(name[:90], "Downloaded", path))
+                    self.tree.selection_set(iid)
+                    self.tree.focus(iid)
+                    self.tree.see(iid)
+                    self.status.set("Download complete — video is ready in your library and saved to: " + path)
                     self.current_stage = "Completed"
                     self.pb["value"] = 100
                     self.progress_label.config(text="100%  •  Completed")
