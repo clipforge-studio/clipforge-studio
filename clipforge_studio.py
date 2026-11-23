@@ -162,6 +162,8 @@ class App:
         tk.Label(libhead, text="Select a completed video to edit", bg="#131e32", fg="#8192ad",
                  font=("Segoe UI", 8)).pack(side="left", padx=10)
         self.button(libhead, "Import Video", self.import_video, "#0e9f83").pack(side="right", padx=6)
+        self.button(libhead, "Scan Folder", self.scan_output_folder, "#344765").pack(side="right", padx=6)
+        self.button(libhead, "Open Folder", self.open_output_folder, "#344765").pack(side="right", padx=6)
         self.button(libhead, "Advanced Log", self.toggle_logs, "#344765").pack(side="right", padx=6)
         self.button(libhead, "Clear Queue", self.clear, "#344765").pack(side="right")
         self.tree = ttk.Treeview(library, columns=("name", "status", "file"), show="headings", height=7)
@@ -300,6 +302,7 @@ class App:
                         "-movflags", "+faststart", output]
                 if self.run_command(cmd):
                     raise RuntimeError("FFmpeg audio export failed for " + fmt)
+            self.register_output_folder(folder)
             self.events.put(("status", "Audio export complete: " + folder))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
@@ -329,6 +332,57 @@ class App:
         if paths:
             self.status.set(f"Imported {len(paths)} video file(s). Select one to edit.")
             self.save_state()
+
+    def open_output_folder(self):
+        try:
+            os.makedirs(self.out, exist_ok=True)
+            os.startfile(self.out)
+        except Exception as exc:
+            messagebox.showerror(APP, "Could not open output folder: " + str(exc))
+
+    def scan_output_folder(self):
+        folder = filedialog.askdirectory(title="Scan a folder for videos", initialdir=self.out)
+        if not folder:
+            return
+        self.out = folder
+        self.folder_label.config(text="Output: " + folder)
+        known = {os.path.normcase(os.path.abspath(path)) for path in self.files.values()}
+        found = 0
+        extensions = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".wmv"}
+        for root, dirs, files in os.walk(folder):
+            dirs[:] = [name for name in dirs if name.lower() != "_clipforge_work"]
+            for name in files:
+                path = os.path.join(root, name)
+                if Path(name).suffix.lower() not in extensions:
+                    continue
+                key = os.path.normcase(os.path.abspath(path))
+                if key in known:
+                    continue
+                iid = self.tree.insert("", "end", values=(name, "Imported", path))
+                self.files[iid] = path
+                known.add(key)
+                found += 1
+        self.status.set("Folder scan complete — added {} video(s) to your library.".format(found))
+        self.save_state()
+
+    def register_output_folder(self, folder):
+        try:
+            paths = sorted(Path(folder).rglob("*.mp4"), key=lambda p: p.stat().st_mtime)
+            for path in paths:
+                if path.is_file():
+                    self.events.put(("output", str(path)))
+        except Exception as exc:
+            self.events.put(("log", "Could not register exported files: " + str(exc)))
+
+    def unique_output_path(self, folder, filename):
+        candidate = os.path.join(folder, filename)
+        if not os.path.exists(candidate):
+            return candidate
+        stem, ext = os.path.splitext(filename)
+        index = 2
+        while os.path.exists(os.path.join(folder, "{}_{}{}".format(stem, index, ext))):
+            index += 1
+        return os.path.join(folder, "{}_{}{}".format(stem, index, ext))
 
     def save_state(self):
         try:
@@ -410,6 +464,7 @@ class App:
         iid = self.tree.insert("", "end", values=(url[:90], "Queued", ""))
         self.jobs.append((url, iid))
         self.url.set("")
+        self.save_state()
 
     def clear(self):
         if self.busy:
@@ -417,12 +472,15 @@ class App:
         self.jobs.clear()
         for iid in self.tree.get_children():
             self.tree.delete(iid)
+        self.files.clear()
+        self.save_state()
 
     def change(self):
         folder = filedialog.askdirectory(initialdir=self.out)
         if folder:
             self.out = folder
             self.folder_label.config(text="Output: " + folder)
+            self.save_state()
 
     def selected(self):
         chosen = self.tree.selection()
@@ -508,7 +566,7 @@ class App:
                 # Keep temporary source files in the work folder, but place the finished video
                 # directly in the selected output folder so users can find it easily.
                 converted_name = clean(Path(source).stem) + "_H264.mp4"
-                converted = os.path.join(self.out, converted_name)
+                converted = self.unique_output_path(self.out, converted_name)
                 if os.path.abspath(converted) == os.path.abspath(source):
                     converted = os.path.join(self.out, clean(Path(source).stem) + "_H264_Export.mp4")
                 self.events.put(("stage", "Converting to H.264"))
@@ -622,6 +680,7 @@ class App:
                 else:
                     self.events.put(("status", "Splitting " + fmt + " into " + str(round(duration / 60, 2)) + " minute parts"))
                     self.encode_segments(source, folder, duration, fmt)
+            self.register_output_folder(dest)
             self.events.put(("status", "Split complete: " + dest))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
@@ -823,6 +882,7 @@ class App:
                            "-movflags", "+faststart", output]
                     if self.run_command(cmd):
                         raise RuntimeError("FFmpeg failed on clip " + str(index))
+            self.register_output_folder(dest)
             self.events.put(("status", "Timeline export complete: " + dest))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
@@ -976,6 +1036,7 @@ class App:
                 cmd += [output]
                 if self.run_command(cmd):
                     raise RuntimeError("FFmpeg export failed for " + fmt)
+            self.register_output_folder(folder)
             self.events.put(("status", "Edited export complete: " + folder))
         except Exception as exc:
             self.events.put(("log", "ERROR: " + str(exc)))
@@ -1071,6 +1132,19 @@ class App:
                     if path and os.path.isfile(path):
                         self.files[iid] = path
                     self.save_state()
+                elif kind == "output":
+                    path = event[1]
+                    normalized = os.path.normcase(os.path.abspath(path))
+                    if os.path.isfile(path) and not any(
+                            os.path.normcase(os.path.abspath(existing)) == normalized
+                            for existing in self.files.values()):
+                        iid = self.tree.insert("", "end",
+                            values=(os.path.basename(path), "Ready to Edit", path))
+                        self.files[iid] = path
+                        self.tree.selection_set(iid)
+                        self.tree.focus(iid)
+                        self.tree.see(iid)
+                        self.save_state()
                 elif kind == "downloaded":
                     _, iid, path, name = event
                     self.files[iid] = path
