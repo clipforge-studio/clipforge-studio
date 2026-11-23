@@ -312,6 +312,14 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
     fade = number("fade", 0, 0, 1)
     if fade:
         chain.append("eq=contrast={:.4f}:saturation={:.4f}".format(1 - fade * 0.18, 1 - fade * 0.22))
+    fade_in = number("video_fade_in", 0, 0, 10)
+    fade_out = number("video_fade_out", 0, 0, 10)
+    total_duration = number("duration", 0, 0, 86400)
+    if fade_in:
+        chain.append("fade=t=in:st=0:d={:.3f}".format(fade_in))
+    if fade_out and total_duration > 0:
+        chain.append("fade=t=out:st={:.3f}:d={:.3f}".format(
+            max(0, total_duration - fade_out), min(fade_out, total_duration)))
     vignette = number("vignette", 0, 0, 1)
     if vignette:
         chain.append("vignette=angle={:.4f}".format(0.25 + vignette * 0.55))
