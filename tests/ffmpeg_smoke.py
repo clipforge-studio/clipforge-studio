@@ -47,6 +47,18 @@ total += 1
 if result.returncode:
     failures.append(("Overlay", "Text and all adjustments", result.stderr[-1200:]))
 
+image_graph = build_filter_chain("Landscape", "Original",
+    {"overlay_opacity": 0.7, "overlay_scale": 0.3},
+    {"image_position": "Bottom Right"}, overlay_image="logo.png")
+command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+           *source, "-f", "lavfi", "-i", "color=c=red@0.5:s=64x64:d=0.3",
+           "-filter_complex", image_graph, "-map", "[vout]",
+           "-frames:v", "1", "-f", "null", "-"]
+result = subprocess.run(command, capture_output=True, text=True)
+total += 1
+if result.returncode:
+    failures.append(("Overlay", "PNG logo compositing", result.stderr[-1200:]))
+
 print("FFmpeg filter smoke tests: {}/{} passed".format(total-len(failures), total))
 if failures:
     for category, preset, error in failures:
