@@ -408,11 +408,14 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         border = int(number("outline", 3, 0, 12))
         shadow = int(number("shadow", 2, 0, 12))
         box = "1" if overlay.get("background", False) else "0"
+        text_start = number("overlay_start", 0, 0, 86400)
+        text_end = number("overlay_end", 86400, text_start, 86400)
+        enable = ":enable='between(t,{:.3f},{:.3f})'".format(text_start, text_end)
         chain.append("drawtext=font='{font}':text='{text}':fontcolor={color}:fontsize={size}:"
                      "borderw={border}:bordercolor=black:shadowx={shadow}:shadowy={shadow}:"
                      "box={box}:boxcolor=black@0.45:boxborderw=12:x=(w-text_w)/2:y={y}".format(
                          font=safe_font, text=safe_text, color=color, size=size,
-                         border=border, shadow=shadow, box=box, y=y))
+                         border=border, shadow=shadow, box=box, y=y) + enable)
     chain.append("setsar=1")
     if overlay_image:
         opacity = number("overlay_opacity", 0.85, 0.05, 1)
@@ -426,9 +429,12 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
         }
         x, y = positions.get(placement, positions["Bottom Right"])
         base = chain[0] + "," + ",".join(chain[1:]) if fmt == "Vertical 9:16" else "[0:v]" + ",".join(chain)
+        image_start = number("overlay_start", 0, 0, 86400)
+        image_end = number("overlay_end", 86400, image_start, 86400)
+        enable = ":enable='between(t,{:.3f},{:.3f})'".format(image_start, image_end)
         return (base + "[vbase];[1:v]format=rgba,colorchannelmixer=aa={:.3f},"
-                "scale=iw*{:.3f}:ih*{:.3f}[ov];[vbase][ov]overlay=x={}:y={}:shortest=1[vout]"
-                ).format(opacity, scale, scale, x, y)
+                "scale=iw*{:.3f}:ih*{:.3f}[ov];[vbase][ov]overlay=x={}:y={}:shortest=1{}[vout]"
+                ).format(opacity, scale, scale, x, y, enable)
     if fmt == "Vertical 9:16":
         return chain[0] + "," + ",".join(chain[1:]) + "[vout]"
     return ",".join(chain)
