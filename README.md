@@ -9,7 +9,7 @@ This branch introduces a download-first workflow and early editing tools. It is 
 ### Implemented in this branch
 
 - Queue supported video URLs and download with `yt-dlp`.
-- Keep downloaded videos in a selectable output folder.
+- Save the finished H.264 MP4 directly inside the selected output folder (not buried in the temporary work directory), then automatically select it in the Video Library.
 - Convert downloaded AV1/VP9 videos to H.264 + AAC MP4 for improved Windows playback compatibility.
 - Import existing local video files from your computer, as well as download supported URLs.
 - Restore the video library, output folder, last status, and last progress stage after closing and reopening the app.
