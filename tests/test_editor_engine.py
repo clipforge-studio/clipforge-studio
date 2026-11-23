@@ -47,6 +47,12 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("aa=0.700", graph)
         self.assertTrue(graph.endswith("[vout]"))
 
+    def test_export_resolution_maps_landscape_and_vertical(self):
+        landscape = build_filter_chain("Landscape", "Original", {"resolution": "720p"})
+        vertical = build_filter_chain("Vertical 9:16", "Original", {"resolution": "1440p"})
+        self.assertIn("scale=1280:720", landscape)
+        self.assertIn("scale=1440:2560", vertical)
+
     def test_canvas_fit_modes(self):
         fit = build_filter_chain("Landscape", "Original", {"canvas_mode": "Fit"})
         fill = build_filter_chain("Landscape", "Original", {"canvas_mode": "Fill"})
