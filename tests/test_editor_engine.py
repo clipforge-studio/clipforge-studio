@@ -1,6 +1,6 @@
 import unittest
 
-from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names
+from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names, build_audio_mix_graph
 
 
 class FilterCatalogTests(unittest.TestCase):
@@ -71,6 +71,18 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("FontSize=36", graph)
         self.assertIn("PrimaryColour=&H0000FFFF", graph)
         self.assertIn("Alignment=8", graph)
+
+    def test_audio_mix_graph_includes_original_and_music(self):
+        graph = build_audio_mix_graph(True, 0.8, 0.35, 1.5, 2, 30)
+        self.assertIn("[0:a]volume=0.800", graph)
+        self.assertIn("[1:a]volume=0.350", graph)
+        self.assertIn("amix=inputs=2", graph)
+        self.assertIn("afade=t=in", graph)
+        self.assertIn("afade=t=out:st=28.000:d=2.000", graph)
+
+    def test_music_only_graph_works_without_source_audio(self):
+        graph = build_audio_mix_graph(False, 1, 0.5)
+        self.assertEqual(graph, "[1:a]volume=0.500[aout]")
 
     def test_unknown_preset_is_rejected(self):
         with self.assertRaises(ValueError):
