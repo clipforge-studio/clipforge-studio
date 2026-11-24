@@ -1378,8 +1378,9 @@ class App:
                  bg="#172235", fg="#94a3b8").pack(anchor="w", padx=18, pady=12)
 
         adjustment_vars = {
-            "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
-            "saturation": tk.DoubleVar(value=1), "gamma": tk.DoubleVar(value=1),
+            "brightness": tk.DoubleVar(value=0), "exposure": tk.DoubleVar(value=0),
+            "contrast": tk.DoubleVar(value=1), "saturation": tk.DoubleVar(value=1),
+            "gamma": tk.DoubleVar(value=1), "hue": tk.DoubleVar(value=0),
             "temperature": tk.DoubleVar(value=0), "tint": tk.DoubleVar(value=0),
             "sharpen": tk.DoubleVar(value=0), "fade": tk.DoubleVar(value=0),
             "vignette": tk.DoubleVar(value=0), "blur": tk.DoubleVar(value=0)
@@ -1392,8 +1393,9 @@ class App:
         speed_var = tk.DoubleVar(value=1)
         canvas_mode_var = tk.StringVar(value="Fit")
         slider_specs = [
-            ("brightness", "Brightness", -1, 1), ("contrast", "Contrast", 0, 2),
-            ("saturation", "Saturation", 0, 2), ("gamma", "Gamma", 0.1, 2),
+            ("brightness", "Brightness", -1, 1), ("exposure", "Exposure", -2, 2),
+            ("contrast", "Contrast", 0, 2), ("saturation", "Saturation", 0, 2),
+            ("gamma", "Gamma", 0.1, 2), ("hue", "Hue", -180, 180),
             ("temperature", "Temperature", -1, 1), ("tint", "Tint", -1, 1),
             ("sharpen", "Sharpen", 0, 2), ("fade", "Fade", 0, 1),
             ("vignette", "Vignette", 0, 1), ("blur", "Blur", 0, 10)
@@ -1440,7 +1442,7 @@ class App:
             values=["Fit", "Fill", "Stretch"], state="readonly", width=18).grid(
             row=12, column=1, sticky="w", padx=12)
         self.button(adjust_tab, "Reset Adjustments",
-            lambda: ([v.set({"brightness":0,"contrast":1,"saturation":1,"gamma":1,
+            lambda: ([v.set({"brightness":0,"exposure":0,"contrast":1,"saturation":1,"gamma":1,"hue":0,
                             "temperature":0,"tint":0,"sharpen":0,"fade":0,"vignette":0,"blur":0}[k])
                      for k,v in adjustment_vars.items()], rotation_var.set("None"),
                      flip_h_var.set(False), flip_v_var.set(False),
