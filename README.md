@@ -30,15 +30,17 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Automatic split using a user-entered segment duration.
 - Manual time-range export using start and end timestamps.
 - Timeline ruler: click to position a playhead, add/remove multiple cut points, and export the resulting clips.
-- Creator Editor with Filter, Adjust, Text & Overlay, and Subtitles tabs.
-- 14 filter categories with 70+ named presets: Basic, Portrait, Cinematic, Vintage, Black & White, Color, Creative, Food, Nature, Travel, Night, Wedding, Urban, and Film. These are original ClipForge presets, not copied CapCut assets.
+- Creator Editor with dedicated Filters, Effects, Adjust, Text & Overlay, and Subtitles workspaces.
+- 19 original visual categories with 100+ named filter/effect presets, including Basic, Portrait, Cinematic, Vintage, Black & White, Color, Creative, Food, Nature, Travel, Night, Wedding, Urban, Film, Lens Effects, Glitch & Distortion, Light & Glow, Motion Effects, and Retro Effects. These are original ClipForge presets, not copied CapCut assets.
+- Horizontally browsable category chips, searchable preset names, persistent filter favorites, and a favorites-only view.
+- Dedicated Effects Library with collections for lens, glitch/distortion, light/glow, motion, and retro looks.
 - Each filter tile renders a thumbnail from the selected video and displays its preset name; previews are cached per source video.
 - Image and logo overlays from PNG/WebP/JPG/GIF (including animated GIF stickers) with opacity, scale, five placement positions, and start/end timing.
 - Text overlays can be timed to appear only during a selected portion of the video.
 - Text overlay with font family, size, color, outline/shadow, background box, and top/center/bottom placement.
 - Import SRT or author multiple captions in-app with per-caption start/end times and save them as SRT; burn them in with adjustable font family (including Nirmala UI/Noto Sans Bengali options), size, color, outline, and alignment.
-- Image-frame preview that renders the selected filter, adjustments, text, subtitle, and logo overlay before export.
-- Adjustments: brightness, contrast, saturation, gamma, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, vertical flip, playback speed, video fade-in/out, and canvas fit/fill/stretch.
+- Asynchronous image-frame preview that renders the selected filter, effects, adjustments, text, subtitle, and logo overlay without blocking the editor interface.
+- Adjustments: brightness, exposure, contrast, saturation, gamma, hue, temperature, tint, sharpen, fade, vignette, blur, rotation, horizontal mirror, vertical flip, playback speed, video fade-in/out, and canvas fit/fill/stretch.
 - Audio tools: original audio volume, fade-in/out, and optional looping background music mixed with the source audio, with independent music fade-in/fade-out controls.
 - MP4 export using H.264 video and AAC audio for broad player compatibility.
 
@@ -47,11 +49,11 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - The timeline is currently a simple clickable time ruler, not a full multi-track waveform editor.
 - The in-app preview currently extracts still frames at selected timestamps; it is not continuous embedded playback or frame-accurate scrubbing. Full playback opens in the system media player.
 - Timeline cut points are time-based; there is no drag-to-trim, clip rearrangement, transitions, or join tool yet.
-- Subtitle authoring and per-caption timing inside the app are not implemented; subtitles are imported from an existing SRT file and burned into the export.
-- Editor preview is a rendered still frame, not continuous real-time playback or a live GPU preview.
-- Multi-track audio mixing, keyframes, transitions, drag-and-drop clip arrangement, and professional color grading are not implemented.
+- The in-app preview is a rendered still frame at the selected timestamp, not continuous embedded playback or a live GPU preview. Filter and adjustment changes trigger asynchronous preview renders.
+- The timeline is still a simple time ruler with cut points; multi-track drag-and-drop clip arrangement, waveform editing, keyframes, transitions, and motion tracking are not implemented.
+- The effects and filter catalog is an original starter library, not a copy of CapCut's proprietary filters, templates, or downloadable assets.
 - Active downloads/conversions are not automatically resumed after reopening; the saved history and source file path remain available for retry.
-- Installer packaging and broad Windows hardware testing remain outstanding.
+- Signed installer packaging and broad Windows hardware testing remain outstanding.
 
 ## Windows portable build
 
