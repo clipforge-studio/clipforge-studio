@@ -1,0 +1,138 @@
+name: Python checks and Windows portable build
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Compile application and engine
+        run: python -m py_compile clipforge_studio.py editor_engine.py
+      - name: Import Windows desktop application
+        run: python -c "import clipforge_studio; print('Tkinter desktop app import OK')"
+      - name: Run editor unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Run FFmpeg filter smoke tests
+        run: python tests/ffmpeg_smoke.py
+
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install FFmpeg
+        shell: pwsh
+        run: choco install ffmpeg --no-progress -y
+      - name: Compile application and engine
+        run: python -m py_compile clipforge_studio.py editor_engine.py
+      - name: Import Windows desktop application
+        run: python -c "import clipforge_studio; print('Tkinter desktop app import OK')"
+      - name: Run editor unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Run FFmpeg filter smoke tests
+        run: python tests/ffmpeg_smoke.py
+
+  windows-portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+      - name: Download bundled FFmpeg and yt-dlp
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tools = Join-Path $env:RUNNER_TEMP "clipforge-tools"
+          New-Item -ItemType Directory -Force -Path $tools | Out-Null
+          $ffmpegZip = Join-Path $tools "ffmpeg.zip"
+          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile $ffmpegZip
+          $ffmpegExtract = Join-Path $tools "ffmpeg-extract"
+          Expand-Archive -Path $ffmpegZip -DestinationPath $ffmpegExtract -Force
+          $ffmpegExe = Get-ChildItem $ffmpegExtract -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
+          $ffprobeExe = Get-ChildItem $ffmpegExtract -Recurse -Filter "ffprobe.exe" | Select-Object -First 1
+          if (-not $ffmpegExe -or -not $ffprobeExe) { throw "FFmpeg/FFprobe binaries were not found." }
+          $bin = Join-Path $tools "ffmpeg-bin"
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          Copy-Item $ffmpegExe.FullName (Join-Path $bin "ffmpeg.exe")
+          Copy-Item $ffprobeExe.FullName (Join-Path $bin "ffprobe.exe")
+          $ytdlp = Join-Path $tools "yt-dlp.exe"
+          Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile $ytdlp
+          if ((Get-Item $ytdlp).Length -lt 1000000) { throw "Downloaded yt-dlp executable looks incomplete." }
+          "CLIPFORGE_FFMPEG_BIN=$bin" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "CLIPFORGE_YTDLP=$ytdlp" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Build standalone application folder
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name ClipForgeStudio clipforge_studio.py
+          if (-not (Test-Path "dist/ClipForgeStudio/ClipForgeStudio.exe")) { throw "Portable EXE was not generated." }
+          $bundleBin = "dist/ClipForgeStudio/_internal/ffmpeg/bin"
+          New-Item -ItemType Directory -Force -Path $bundleBin | Out-Null
+          Copy-Item "$env:CLIPFORGE_FFMPEG_BIN\ffmpeg.exe" $bundleBin
+          Copy-Item "$env:CLIPFORGE_FFMPEG_BIN\ffprobe.exe" $bundleBin
+          Get-ChildItem $env:CLIPFORGE_FFMPEG_BIN -Filter "*.dll" | Copy-Item -Destination $bundleBin
+          Copy-Item $env:CLIPFORGE_YTDLP "dist/ClipForgeStudio/_internal/yt-dlp.exe"
+          if (-not (Test-Path "$bundleBin/ffmpeg.exe")) { throw "Bundled FFmpeg missing." }
+          if (-not (Test-Path "$bundleBin/ffprobe.exe")) { throw "Bundled FFprobe missing." }
+          if (-not (Test-Path "dist/ClipForgeStudio/_internal/yt-dlp.exe")) { throw "Bundled yt-dlp missing." }
+          & "$bundleBin/ffmpeg.exe" -version
+          if ($LASTEXITCODE -ne 0) { throw "Bundled FFmpeg failed to start; required DLLs may be missing." }
+          & "dist/ClipForgeStudio/_internal/yt-dlp.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "Bundled yt-dlp failed to start." }
+          $app = Start-Process -FilePath "dist/ClipForgeStudio/ClipForgeStudio.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $app.Refresh()
+          if ($app.HasExited) { throw "ClipForge Studio exited during startup smoke test." }
+          Stop-Process -Id $app.Id -Force
+          @"
+          ClipForge Studio — Windows Portable
+          ===================================
+          1. Extract the complete ZIP.
+          2. Open the ClipForgeStudio folder.
+          3. Double-click ClipForgeStudio.exe.
+
+          Python, FFmpeg, FFprobe and yt-dlp are bundled.
+          Keep the _internal folder beside ClipForgeStudio.exe.
+          "@ | Set-Content "dist/ClipForgeStudio/READ_ME_FIRST.txt" -Encoding UTF8
+          Compress-Archive -Path "dist/ClipForgeStudio" -DestinationPath "ClipForgeStudio-Windows-Portable.zip" -Force
+      - name: Upload portable ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipForgeStudio-Windows-Portable
+          path: ClipForgeStudio-Windows-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish preview download
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: clipforge-v0.3.0-portable
+          name: ClipForge Studio v0.3 — Windows Portable Preview
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: ClipForgeStudio-Windows-Portable.zip
+          body: |
+            Windows portable preview build. Extract the ZIP and run ClipForgeStudio.exe.
+            Python, FFmpeg, FFprobe and yt-dlp are bundled. Keep the complete extracted folder together.
