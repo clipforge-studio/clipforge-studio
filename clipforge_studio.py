@@ -1204,12 +1204,48 @@ class App:
         search_entry.pack(side="left", fill="x", expand=True, ipady=5)
         tk.Label(search_row, text="Search filters in this category",
                  bg="#172235", fg="#64748b").pack(side="right", padx=9)
+        favorite_file = Path(self.state_dir) / "filter_favorites.json"
+        try:
+            favorite_keys = set(json.loads(favorite_file.read_text(encoding="utf-8")))
+        except Exception:
+            favorite_keys = set()
+        favorite_only = tk.BooleanVar(value=False)
+        favorite_bar = tk.Frame(filter_tab, bg="#172235")
+        favorite_bar.grid(row=4, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 4))
+        favorite_button = self.button(favorite_bar, "☆  Add selected to Favorites",
+            lambda: toggle_filter_favorite(), "#475569")
+        favorite_button.pack(side="left")
+        tk.Checkbutton(favorite_bar, text="Show favorites only", variable=favorite_only,
+            command=lambda: render_filter_cards(), bg="#172235", fg="#cbd5e1",
+            selectcolor="#0b1220", activebackground="#172235").pack(side="left", padx=12)
         filter_cards = tk.Frame(filter_tab, bg="#172235")
-        filter_cards.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        filter_cards.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
         filter_tile_buttons = {}
         thumbnail_state = {"token": 0}
+        def favorite_key(name):
+            return category.get() + "::" + name
+        def update_favorite_button():
+            saved = favorite_key(effect.get()) in favorite_keys
+            favorite_button.config(text=("★  Remove from Favorites" if saved else "☆  Add selected to Favorites"),
+                                   bg="#854d0e" if saved else "#475569")
+        def toggle_filter_favorite():
+            key = favorite_key(effect.get())
+            if key in favorite_keys:
+                favorite_keys.remove(key)
+            else:
+                favorite_keys.add(key)
+            try:
+                favorite_file.parent.mkdir(parents=True, exist_ok=True)
+                favorite_file.write_text(json.dumps(sorted(favorite_keys), ensure_ascii=False, indent=2),
+                                         encoding="utf-8")
+            except Exception as exc:
+                messagebox.showwarning(APP, "Could not save favorites: " + str(exc), parent=win)
+            update_favorite_button()
+            if favorite_only.get():
+                render_filter_cards()
         def choose_filter(name):
             effect.set(name)
+            update_favorite_button()
             preview_filter_name.config(text="Selected filter: " + name + " • preview updating")
             for child in filter_cards.winfo_children():
                 if getattr(child, "_filter_name", None) == name:
@@ -1275,6 +1311,8 @@ class App:
             all_choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
             query = filter_search.get().strip().casefold()
             choices = [name for name in all_choices if query in name.casefold()]
+            if favorite_only.get():
+                choices = [name for name in choices if category.get() + "::" + name in favorite_keys]
             filter_box.configure(values=all_choices)
             thumbnail_state["token"] += 1
             token = thumbnail_state["token"]
@@ -1285,6 +1323,7 @@ class App:
                 return
             if effect.get() not in choices:
                 effect.set("Original" if "Original" in choices else choices[0])
+            update_favorite_button()
             for index, name in enumerate(choices):
                 tile = tk.Button(filter_cards, text=name + "\nPreview loading…",
                     command=lambda item=name: choose_filter(item), bg="#2563eb" if name == effect.get() else "#344765",
@@ -1302,6 +1341,7 @@ class App:
         filter_box.bind("<<ComboboxSelected>>", lambda _event: choose_filter(effect.get()))
         filter_search.trace_add("write", lambda *_args: render_filter_cards())
         render_filter_cards()
+        update_favorite_button()
 
         tk.Label(effects_tab, text="EFFECTS LIBRARY", bg="#172235", fg="#f8fafc",
                  font=("Segoe UI", 17, "bold")).pack(anchor="w", padx=18, pady=(18, 4))
