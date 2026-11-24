@@ -22,7 +22,6 @@ This branch introduces a download-first workflow and early editing tools. It is 
 - Show separate Downloading and H.264 conversion stages. FFmpeg conversion progress is read from its machine-readable progress output.
 - Stop the active FFmpeg/yt-dlp process when the app is closed and mark an in-progress task as interrupted.
 - Restore queued, failed, and interrupted download URLs so they can be retried with the **Download** button after reopening.
-- Open an in-app frame preview window with a seek slider, frame refresh, and a button to play the full video in the system media player.
 - Select Landscape, Vertical 9:16, Original, or Both for processing.
 - Export settings: 720p, 1080p, or 1440p; Draft, Standard, High, or Best quality; Original, 24, 30, or 60 FPS. Settings are saved between sessions.
 - Canvas fit modes for Landscape and Vertical: Fit, Fill, and Stretch.
@@ -47,7 +46,6 @@ This branch introduces a download-first workflow and early editing tools. It is 
 ### Known limitations
 
 - The timeline is currently a simple clickable time ruler, not a full multi-track waveform editor.
-- The in-app preview currently extracts still frames at selected timestamps; it is not continuous embedded playback or frame-accurate scrubbing. Full playback opens in the system media player.
 - Timeline cut points are time-based; there is no drag-to-trim, clip rearrangement, transitions, or join tool yet.
 - The in-app preview is a rendered still frame at the selected timestamp, not continuous embedded playback or a live GPU preview. Filter and adjustment changes trigger asynchronous preview renders.
 - The timeline is still a simple time ruler with cut points; multi-track drag-and-drop clip arrangement, waveform editing, keyframes, transitions, and motion tracking are not implemented.
