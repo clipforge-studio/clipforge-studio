@@ -1221,13 +1221,43 @@ class App:
         filter_box = ttk.Combobox(filter_tab, textvariable=effect,
             values=list(FILTER_CATEGORIES["Basic"].keys()), state="readonly", width=30)
         filter_box.grid(row=1, column=1, sticky="w", padx=14)
+        category_strip = tk.Frame(filter_tab, bg="#172235")
+        category_strip.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 4))
+        category_canvas = tk.Canvas(category_strip, height=40, bg="#172235", highlightthickness=0)
+        category_scroll = ttk.Scrollbar(category_strip, orient="horizontal", command=category_canvas.xview)
+        category_inner = tk.Frame(category_canvas, bg="#172235")
+        category_window = category_canvas.create_window((0, 0), window=category_inner, anchor="nw")
+        category_canvas.configure(xscrollcommand=category_scroll.set)
+        category_inner.bind("<Configure>", lambda _e: category_canvas.configure(
+            scrollregion=category_canvas.bbox("all")))
+        category_canvas.pack(fill="x", side="top")
+        category_scroll.pack(fill="x", side="bottom")
+        category_chip_buttons = {}
+        def refresh_category_chips():
+            for name, chip in category_chip_buttons.items():
+                active = name == category.get()
+                chip.configure(bg="#0e7490" if active else "#26364d",
+                               fg="#ffffff" if active else "#cbd5e1")
+        def select_filter_category(name):
+            category.set(name)
+            render_filter_cards()
+            refresh_category_chips()
+        for name in FILTER_CATEGORIES:
+            chip = tk.Button(category_inner, text=name, command=lambda n=name: select_filter_category(n),
+                bg="#0e7490" if name == category.get() else "#26364d",
+                fg="#ffffff" if name == category.get() else "#cbd5e1",
+                activebackground="#0e7490", activeforeground="#ffffff",
+                relief="flat", bd=0, padx=12, pady=7,
+                font=("Segoe UI", 8, "bold"), cursor="hand2")
+            chip.pack(side="left", padx=3, pady=2)
+            category_chip_buttons[name] = chip
         preset_count = sum(len(items) for items in FILTER_CATEGORIES.values())
         preview_filter_name = tk.Label(filter_tab, text=f"{preset_count} named presets across {len(FILTER_CATEGORIES)} categories",
             bg="#172235", fg="#94a3b8", font=("Segoe UI", 9))
-        preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=(8, 4))
+        preview_filter_name.grid(row=3, column=0, columnspan=2, sticky="w", padx=14, pady=(8, 4))
         filter_search = tk.StringVar()
         search_row = tk.Frame(filter_tab, bg="#172235")
-        search_row.grid(row=3, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 8))
+        search_row.grid(row=4, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 8))
         tk.Label(search_row, text="⌕", bg="#0b1220", fg="#94a3b8",
                  font=("Segoe UI", 13, "bold")).pack(side="left", padx=(9, 4), pady=5)
         search_entry = ttk.Entry(search_row, textvariable=filter_search)
@@ -1241,7 +1271,7 @@ class App:
             favorite_keys = set()
         favorite_only = tk.BooleanVar(value=False)
         favorite_bar = tk.Frame(filter_tab, bg="#172235")
-        favorite_bar.grid(row=4, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 4))
+        favorite_bar.grid(row=5, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 4))
         favorite_button = self.button(favorite_bar, "☆  Add selected to Favorites",
             lambda: toggle_filter_favorite(), "#475569")
         favorite_button.pack(side="left")
@@ -1249,7 +1279,7 @@ class App:
             command=lambda: render_filter_cards(), bg="#172235", fg="#cbd5e1",
             selectcolor="#0b1220", activebackground="#172235").pack(side="left", padx=12)
         filter_cards = tk.Frame(filter_tab, bg="#172235")
-        filter_cards.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        filter_cards.grid(row=6, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
         filter_tile_buttons = {}
         thumbnail_state = {"token": 0}
         def favorite_key(name):
@@ -1344,6 +1374,7 @@ class App:
             if favorite_only.get():
                 choices = [name for name in choices if category.get() + "::" + name in favorite_keys]
             filter_box.configure(values=all_choices)
+            refresh_category_chips()
             thumbnail_state["token"] += 1
             token = thumbnail_state["token"]
             if not choices:
@@ -1367,7 +1398,7 @@ class App:
             threading.Thread(target=create_filter_thumbnails,
                 args=(category.get(), choices, token), daemon=True).start()
 
-        category_box.bind("<<ComboboxSelected>>", lambda _event: render_filter_cards())
+        category_box.bind("<<ComboboxSelected>>", lambda _event: (render_filter_cards(), refresh_category_chips()))
         filter_box.bind("<<ComboboxSelected>>", lambda _event: choose_filter(effect.get()))
         filter_search.trace_add("write", lambda *_args: render_filter_cards())
         render_filter_cards()
