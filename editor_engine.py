@@ -212,7 +212,7 @@ FILTER_CATEGORIES = {
         "Color Offset": ["rgbashift=rv=3:gv=-2:bv=2"],
         "Digital Noise": ["noise=alls=18:allf=t"],
         "Pixel Glitch": ["scale=iw/16:ih/16:flags=neighbor", "scale=iw*16:ih*16:flags=neighbor"],
-        "Wave Distortion": ["wave=amplitude=2:period=20"],
+        "Barrel Distortion": ["lenscorrection=k1=-0.22:k2=0.06"],
         "Edge Distortion": ["edgedetect=low=0.08:high=0.22"]
     },
     "Light & Glow": {
