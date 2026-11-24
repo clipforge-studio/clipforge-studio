@@ -1265,10 +1265,15 @@ class App:
             query = filter_search.get().strip().casefold()
             choices = [name for name in all_choices if query in name.casefold()]
             filter_box.configure(values=all_choices)
-            if effect.get() not in choices:
-                effect.set("Original" if "Original" in choices else choices[0])
             thumbnail_state["token"] += 1
             token = thumbnail_state["token"]
+            if not choices:
+                tk.Label(filter_cards, text="No filters match your search.",
+                    bg="#172235", fg="#94a3b8", font=("Segoe UI", 10)).pack(
+                        anchor="w", padx=14, pady=18)
+                return
+            if effect.get() not in choices:
+                effect.set("Original" if "Original" in choices else choices[0])
             for index, name in enumerate(choices):
                 tile = tk.Button(filter_cards, text=name + "\nPreview loading…",
                     command=lambda item=name: choose_filter(item), bg="#2563eb" if name == effect.get() else "#344765",
