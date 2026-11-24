@@ -1084,12 +1084,19 @@ class App:
                                        bg="#0b1220", fg="#94a3b8")
         preview_image_label.pack(expand=True)
         preview_png = os.path.join(tempfile.gettempdir(), "clipforge_editor_preview.png")
+        preview_state = {"token": 0}
         def preview_current_look():
             if not self.ffmpeg:
                 self.ffmpeg = locate("ffmpeg")
             if not self.ffmpeg:
                 messagebox.showerror(APP, "FFmpeg is required for preview.", parent=win)
                 return
+            preview_state["token"] += 1
+            token = preview_state["token"]
+            preview_png = os.path.join(tempfile.gettempdir(),
+                "clipforge_editor_preview_{}.png".format(token))
+            preview_image_label.config(image="", text="Rendering live preview…")
+            preview_image_label.image = None
             try:
                 chosen_overlay = {"text": overlay_text.get(), "text_size": int(overlay_size.get()),
                     "position": overlay_position.get(), "color": overlay_color.get(),
@@ -1127,16 +1134,39 @@ class App:
                     graph += ",scale=420:190:force_original_aspect_ratio=decrease,pad=420:190:(ow-iw)/2:(oh-ih)/2"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
                            str(playhead[0]), "-i", source, "-vf", graph, "-frames:v", "1", preview_png]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=45,
-                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-                if result.returncode or not os.path.isfile(preview_png):
-                    raise RuntimeError(result.stderr[-1200:] or "Preview frame could not be created.")
-                photo = tk.PhotoImage(file=preview_png)
-                preview_image_label.config(image=photo, text="")
-                preview_image_label.image = photo
             except Exception as exc:
-                preview_image_label.config(image="", text="Preview failed: " + str(exc))
-                preview_image_label.image = None
+                preview_image_label.config(image="", text="Preview settings error: " + str(exc))
+                return
+
+            def render_preview():
+                error = None
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=45,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                    if result.returncode or not os.path.isfile(preview_png):
+                        error = result.stderr[-1200:] or "Preview frame could not be created."
+                except Exception as exc:
+                    error = str(exc)
+                def finish_preview():
+                    if not win.winfo_exists() or token != preview_state["token"]:
+                        return
+                    if error:
+                        preview_image_label.config(image="", text="Preview failed: " + error)
+                        preview_image_label.image = None
+                        return
+                    try:
+                        photo = tk.PhotoImage(file=preview_png)
+                        preview_image_label.config(image=photo, text="")
+                        preview_image_label.image = photo
+                        preview_filter_name.config(text="Selected filter: " + effect.get() + " • live preview ready")
+                    except Exception as exc:
+                        preview_image_label.config(image="", text="Preview display failed: " + str(exc))
+                        preview_image_label.image = None
+                try:
+                    win.after(0, finish_preview)
+                except Exception:
+                    pass
+            threading.Thread(target=render_preview, daemon=True).start()
 
         preview_schedule = {"after_id": None}
         def schedule_preview(*_args):
