@@ -6,8 +6,8 @@ from editor_engine import FILTER_CATEGORIES, build_filter_chain, filter_names, b
 class FilterCatalogTests(unittest.TestCase):
     def test_catalog_has_named_categories_and_presets(self):
         names = filter_names()
-        self.assertGreaterEqual(len(names), 12)
-        self.assertGreaterEqual(sum(len(items) for items in names.values()), 70)
+        self.assertGreaterEqual(len(names), 17)
+        self.assertGreaterEqual(sum(len(items) for items in names.values()), 95)
         for category, presets in names.items():
             self.assertTrue(category)
             self.assertTrue(presets)
@@ -19,6 +19,12 @@ class FilterCatalogTests(unittest.TestCase):
                     result = build_filter_chain("Landscape", preset)
                     self.assertTrue(result)
                     self.assertIn("setsar=1", result)
+
+    def test_original_effect_collections_are_available(self):
+        for category in ("Lens Effects", "Glitch & Distortion", "Light & Glow",
+                         "Motion Effects", "Retro Effects"):
+            self.assertIn(category, FILTER_CATEGORIES)
+            self.assertGreaterEqual(len(FILTER_CATEGORIES[category]), 5)
 
     def test_vertical_filter_has_output_label(self):
         result = build_filter_chain("Vertical 9:16", "Teal & Orange")
