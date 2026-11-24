@@ -418,6 +418,12 @@ def build_filter_chain(fmt="Original", preset="Original", adjustments=None, over
     if (brightness, contrast, saturation, gamma) != (0, 1, 1, 1):
         chain.append("eq=brightness={:.4f}:contrast={:.4f}:saturation={:.4f}:gamma={:.4f}".format(
             brightness, contrast, saturation, gamma))
+    exposure = number("exposure", 0, -3, 3)
+    if exposure:
+        chain.append("exposure=exposure={:.4f}".format(exposure))
+    hue = number("hue", 0, -180, 180)
+    if hue:
+        chain.append("hue=h={:.3f}".format(hue))
     temperature = number("temperature", 0, -1, 1)
     tint = number("tint", 0, -1, 1)
     if temperature or tint:
