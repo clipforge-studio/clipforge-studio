@@ -199,6 +199,46 @@ FILTER_CATEGORIES = {
         "Kodak Warm": ["colorbalance=rs=0.10:gs=0.035:bs=-0.10", "eq=saturation=0.96"],
         "Fuji Cool": ["colorbalance=rs=-0.035:gs=0.015:bs=0.085", "eq=saturation=1.02"]
     },
+    "Lens Effects": {
+        "Soft Focus": ["gblur=sigma=1.0"],
+        "Dream Lens": ["gblur=sigma=1.4", "eq=brightness=0.025:saturation=1.12"],
+        "Wide Lens": ["lenscorrection=k1=-0.12:k2=0.025"],
+        "Fisheye": ["lenscorrection=k1=-0.28:k2=0.08"],
+        "Vignette Lens": ["vignette=PI/4"],
+        "Tilt Shift": ["gblur=sigma=2.2", "eq=contrast=1.08:saturation=1.08"]
+    },
+    "Glitch & Distortion": {
+        "RGB Split": ["rgbashift=rh=5:bh=-5"],
+        "Color Offset": ["rgbashift=rv=3:gv=-2:bv=2"],
+        "Digital Noise": ["noise=alls=18:allf=t"],
+        "Pixel Glitch": ["scale=iw/16:ih/16:flags=neighbor", "scale=iw*16:ih*16:flags=neighbor"],
+        "Wave Distortion": ["wave=amplitude=2:period=20"],
+        "Edge Distortion": ["edgedetect=low=0.08:high=0.22"]
+    },
+    "Light & Glow": {
+        "Bloom": ["gblur=sigma=1.0", "eq=brightness=0.045:contrast=1.08"],
+        "Neon Glow": ["eq=contrast=1.2:saturation=1.5", "unsharp=5:5:0.8"],
+        "Light Leak Warm": ["colorbalance=rs=0.16:gs=0.045:bs=-0.12", "eq=brightness=0.04"],
+        "Blue Flare": ["colorbalance=rs=-0.08:gs=0.015:bs=0.15", "eq=contrast=1.08"],
+        "Halation": ["gblur=sigma=0.55", "eq=brightness=0.025:saturation=1.15"],
+        "Soft Highlight": ["curves=all='0/0 0.65/0.72 1/1'", "eq=brightness=0.025"]
+    },
+    "Motion Effects": {
+        "Ghost Trail": ["tmix=frames=3:weights='1 0.65 0.35'"],
+        "Motion Blur": ["tmix=frames=2:weights='1 1'"],
+        "Freeze Tone": ["eq=contrast=1.15:saturation=0.78"],
+        "Speed Punch": ["eq=contrast=1.18:saturation=1.16", "unsharp=5:5:0.6"],
+        "Strobe Look": ["eq=contrast=1.25:saturation=1.2"],
+        "Slow Shutter": ["tmix=frames=4:weights='1 0.7 0.45 0.25'"]
+    },
+    "Retro Effects": {
+        "VHS": ["noise=alls=12:allf=t", "eq=saturation=0.85:contrast=1.08", "rgbashift=rv=2:bv=-2"],
+        "Old TV": ["hue=s=0", "noise=alls=16:allf=t"],
+        "Super 8": ["curves=vintage", "noise=alls=8:allf=t", "vignette=PI/6"],
+        "Polaroid": ["curves=vintage", "eq=saturation=0.78:brightness=0.035"],
+        "Tape Color": ["rgbashift=rh=2:bh=-2", "eq=saturation=0.9:contrast=1.08"],
+        "Film Burn": ["colorbalance=rs=0.16:gs=0.04:bs=-0.12", "eq=brightness=0.055"]
+    },
     "Creative": {
         "Dreamy": [
             "gblur=sigma=1.3",
