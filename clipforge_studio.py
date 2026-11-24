@@ -1107,7 +1107,7 @@ class App:
                     effect.get(), overlay_text.get(), int(overlay_size.get()), overlay_position.get(),
                     subtitle_path, chosen_adjustments, chosen_overlay, overlay_image.get() or None)
                 if graph.endswith("[vout]"):
-                    graph = graph[:-6] + ",scale=800:450:force_original_aspect_ratio=decrease[vpreview]"
+                    graph = graph[:-6] + ",scale=420:190:force_original_aspect_ratio=decrease,pad=420:190:(ow-iw)/2:(oh-ih)/2[vpreview]"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
                            str(playhead[0]), "-i", source]
                     if overlay_image.get():
@@ -1115,7 +1115,7 @@ class App:
                         cmd += loop_args + ["-i", overlay_image.get()]
                     cmd += ["-filter_complex", graph, "-map", "[vpreview]", "-frames:v", "1", preview_png]
                 else:
-                    graph += ",scale=800:450:force_original_aspect_ratio=decrease"
+                    graph += ",scale=420:190:force_original_aspect_ratio=decrease,pad=420:190:(ow-iw)/2:(oh-ih)/2"
                     cmd = [self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss",
                            str(playhead[0]), "-i", source, "-vf", graph, "-frames:v", "1", preview_png]
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=45,
@@ -1183,9 +1183,18 @@ class App:
         preset_count = sum(len(items) for items in FILTER_CATEGORIES.values())
         preview_filter_name = tk.Label(filter_tab, text=f"{preset_count} named presets across {len(FILTER_CATEGORIES)} categories",
             bg="#172235", fg="#94a3b8", font=("Segoe UI", 9))
-        preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=12)
+        preview_filter_name.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=(8, 4))
+        filter_search = tk.StringVar()
+        search_row = tk.Frame(filter_tab, bg="#172235")
+        search_row.grid(row=3, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 8))
+        tk.Label(search_row, text="⌕", bg="#0b1220", fg="#94a3b8",
+                 font=("Segoe UI", 13, "bold")).pack(side="left", padx=(9, 4), pady=5)
+        search_entry = ttk.Entry(search_row, textvariable=filter_search)
+        search_entry.pack(side="left", fill="x", expand=True, ipady=5)
+        tk.Label(search_row, text="Search filters in this category",
+                 bg="#172235", fg="#64748b").pack(side="right", padx=9)
         filter_cards = tk.Frame(filter_tab, bg="#172235")
-        filter_cards.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
+        filter_cards.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=5)
         filter_tile_buttons = {}
         thumbnail_state = {"token": 0}
         def choose_filter(name):
@@ -1252,8 +1261,10 @@ class App:
             for child in filter_cards.winfo_children():
                 child.destroy()
             filter_tile_buttons.clear()
-            choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
-            filter_box.configure(values=choices)
+            all_choices = list(FILTER_CATEGORIES.get(category.get(), {}).keys())
+            query = filter_search.get().strip().casefold()
+            choices = [name for name in all_choices if query in name.casefold()]
+            filter_box.configure(values=all_choices)
             if effect.get() not in choices:
                 effect.set("Original" if "Original" in choices else choices[0])
             thumbnail_state["token"] += 1
@@ -1273,6 +1284,7 @@ class App:
 
         category_box.bind("<<ComboboxSelected>>", lambda _event: render_filter_cards())
         filter_box.bind("<<ComboboxSelected>>", lambda _event: choose_filter(effect.get()))
+        filter_search.trace_add("write", lambda *_args: render_filter_cards())
         render_filter_cards()
 
         adjustment_vars = {
