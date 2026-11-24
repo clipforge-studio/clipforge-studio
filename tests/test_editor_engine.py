@@ -141,6 +141,12 @@ class FilterCatalogTests(unittest.TestCase):
         self.assertIn("brightness=1.0000", result)
         self.assertIn("contrast=0.0000", result)
 
+    def test_exposure_and_hue_adjustments(self):
+        result = build_filter_chain("Original", "Original",
+                                    {"exposure": 1.25, "hue": -24})
+        self.assertIn("exposure=exposure=1.2500", result)
+        self.assertIn("hue=h=-24.000", result)
+
 
 if __name__ == "__main__":
     unittest.main()
