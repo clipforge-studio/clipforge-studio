@@ -86,11 +86,21 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          python -m PyInstaller --noconfirm --clean --windowed --onedir --name ClipForgeStudio --add-binary "$env:CLIPFORGE_FFMPEG_BIN\ffmpeg.exe;ffmpeg\bin" --add-binary "$env:CLIPFORGE_FFMPEG_BIN\ffprobe.exe;ffmpeg\bin" --add-binary "$env:CLIPFORGE_YTDLP;." clipforge_studio.py
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name ClipForgeStudio clipforge_studio.py
           if (-not (Test-Path "dist/ClipForgeStudio/ClipForgeStudio.exe")) { throw "Portable EXE was not generated." }
-          if (-not (Test-Path "dist/ClipForgeStudio/_internal/ffmpeg/bin/ffmpeg.exe")) { throw "Bundled FFmpeg missing." }
-          if (-not (Test-Path "dist/ClipForgeStudio/_internal/ffmpeg/bin/ffprobe.exe")) { throw "Bundled FFprobe missing." }
+          $bundleBin = "dist/ClipForgeStudio/_internal/ffmpeg/bin"
+          New-Item -ItemType Directory -Force -Path $bundleBin | Out-Null
+          Copy-Item "$env:CLIPFORGE_FFMPEG_BIN\ffmpeg.exe" $bundleBin
+          Copy-Item "$env:CLIPFORGE_FFMPEG_BIN\ffprobe.exe" $bundleBin
+          Get-ChildItem $env:CLIPFORGE_FFMPEG_BIN -Filter "*.dll" | Copy-Item -Destination $bundleBin
+          Copy-Item $env:CLIPFORGE_YTDLP "dist/ClipForgeStudio/_internal/yt-dlp.exe"
+          if (-not (Test-Path "$bundleBin/ffmpeg.exe")) { throw "Bundled FFmpeg missing." }
+          if (-not (Test-Path "$bundleBin/ffprobe.exe")) { throw "Bundled FFprobe missing." }
           if (-not (Test-Path "dist/ClipForgeStudio/_internal/yt-dlp.exe")) { throw "Bundled yt-dlp missing." }
+          & "$bundleBin/ffmpeg.exe" -version
+          if ($LASTEXITCODE -ne 0) { throw "Bundled FFmpeg failed to start; required DLLs may be missing." }
+          & "dist/ClipForgeStudio/_internal/yt-dlp.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "Bundled yt-dlp failed to start." }
           @"
           ClipForge Studio — Windows Portable
           ===================================
