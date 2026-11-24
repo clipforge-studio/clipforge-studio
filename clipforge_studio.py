@@ -66,6 +66,15 @@ class App:
         st = ttk.Style()
         st.theme_use("clam")
         st.configure("TProgressbar", troughcolor="#263244", background="#22c55e")
+        st.configure("TNotebook", background="#1f2937", borderwidth=0, tabmargins=(2, 4, 2, 0))
+        st.configure("TNotebook.Tab", background="#26364d", foreground="#cbd5e1",
+                     padding=(18, 10), font=("Segoe UI", 9, "bold"))
+        st.map("TNotebook.Tab", background=[("selected", "#0e7490")],
+               foreground=[("selected", "#ffffff")])
+        st.configure("TCombobox", fieldbackground="#0b1220", background="#26364d",
+                     foreground="#e2e8f0", arrowcolor="#cbd5e1", padding=6)
+        st.map("TCombobox", fieldbackground=[("readonly", "#0b1220")],
+               foreground=[("readonly", "#e2e8f0")])
         st.configure("Treeview", background="#1f2937", foreground="white", fieldbackground="#1f2937", rowheight=29)
         st.configure("Treeview.Heading", background="#374151", foreground="white")
         st.map("Treeview", background=[("selected", "#1d4ed8")])
@@ -1613,6 +1622,7 @@ class App:
                              daemon=True).start()
         self.button(win, "Export Edited Video", export, "#0f766e").pack(anchor="e", padx=18, pady=12)
         redraw()
+        schedule_preview()
 
     @staticmethod
     def format_time(seconds):
