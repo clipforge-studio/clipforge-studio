@@ -1169,10 +1169,12 @@ class App:
             scrollbar.pack(side="right", fill="y")
             return host, inner
         filter_host, filter_tab = make_scrollable_tab()
+        effects_host, effects_tab = make_scrollable_tab()
         adjust_host, adjust_tab = make_scrollable_tab()
         overlay_host, overlay_tab = make_scrollable_tab()
         subtitle_host, subtitle_tab = make_scrollable_tab()
         notebook.add(filter_host, text="  Filters  ")
+        notebook.add(effects_host, text="  Effects  ")
         notebook.add(adjust_host, text="  Adjust  ")
         notebook.add(overlay_host, text="  Text & Overlay  ")
         notebook.add(subtitle_host, text="  Subtitles  ")
@@ -1300,6 +1302,40 @@ class App:
         filter_box.bind("<<ComboboxSelected>>", lambda _event: choose_filter(effect.get()))
         filter_search.trace_add("write", lambda *_args: render_filter_cards())
         render_filter_cards()
+
+        tk.Label(effects_tab, text="EFFECTS LIBRARY", bg="#172235", fg="#f8fafc",
+                 font=("Segoe UI", 17, "bold")).pack(anchor="w", padx=18, pady=(18, 4))
+        tk.Label(effects_tab,
+                 text="Explore original ClipForge effects. Choose a collection to browse its presets and live previews.",
+                 bg="#172235", fg="#94a3b8", wraplength=820, justify="left").pack(
+                     anchor="w", padx=18, pady=(0, 14))
+        effect_collections = [
+            ("Lens Effects", "Focus, lens distortion and cinematic optics"),
+            ("Glitch & Distortion", "RGB split, digital noise and stylized distortion"),
+            ("Light & Glow", "Bloom, neon, light leaks and highlight looks"),
+            ("Motion Effects", "Ghost trails, shutter looks and motion styling"),
+            ("Retro Effects", "VHS, old TV, Super 8 and analog looks"),
+        ]
+        effects_grid = tk.Frame(effects_tab, bg="#172235")
+        effects_grid.pack(fill="x", padx=12, pady=4)
+        for idx, (collection, description) in enumerate(effect_collections):
+            presets = FILTER_CATEGORIES.get(collection, {})
+            tile = tk.Frame(effects_grid, bg="#26364d", highlightthickness=1,
+                            highlightbackground="#3b506c", padx=12, pady=12)
+            tile.grid(row=idx // 2, column=idx % 2, sticky="nsew", padx=6, pady=6)
+            effects_grid.grid_columnconfigure(idx % 2, weight=1)
+            tk.Label(tile, text=collection.upper(), bg="#26364d", fg="#f8fafc",
+                     font=("Segoe UI", 11, "bold")).pack(anchor="w")
+            tk.Label(tile, text=description, bg="#26364d", fg="#cbd5e1",
+                     wraplength=310, justify="left").pack(anchor="w", pady=(6, 8))
+            tk.Label(tile, text=f"{len(presets)} original presets", bg="#26364d",
+                     fg="#67e8f9", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            self.button(tile, "Browse Effects  →",
+                lambda name=collection: (category.set(name), filter_search.set(""),
+                                         render_filter_cards(), notebook.select(filter_host)),
+                "#0e7490").pack(anchor="e", pady=(10, 0))
+        tk.Label(effects_tab, text="Effects are rendered through FFmpeg and included in the final export.",
+                 bg="#172235", fg="#94a3b8").pack(anchor="w", padx=18, pady=12)
 
         adjustment_vars = {
             "brightness": tk.DoubleVar(value=0), "contrast": tk.DoubleVar(value=1),
