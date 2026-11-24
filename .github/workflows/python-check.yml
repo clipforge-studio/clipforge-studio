@@ -101,6 +101,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Bundled FFmpeg failed to start; required DLLs may be missing." }
           & "dist/ClipForgeStudio/_internal/yt-dlp.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "Bundled yt-dlp failed to start." }
+          $app = Start-Process -FilePath "dist/ClipForgeStudio/ClipForgeStudio.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $app.Refresh()
+          if ($app.HasExited) { throw "ClipForge Studio exited during startup smoke test." }
+          Stop-Process -Id $app.Id -Force
           @"
           ClipForge Studio — Windows Portable
           ===================================
