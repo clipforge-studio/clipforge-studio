@@ -1053,6 +1053,7 @@ class App:
             t = max(0.0, min(duration, (event.x-12)/max(1, timeline.winfo_width()-24)*duration))
             playhead[0] = t
             current.set(self.format_time(t))
+            schedule_preview()
             if 0.5 < t < duration-0.5 and all(abs(t-x) > 0.5 for x in cuts):
                 cuts.append(t)
                 cuts.sort()
@@ -1066,7 +1067,8 @@ class App:
                  font=("Consolas", 11, "bold")).pack(side="left", padx=7)
         self.button(info, "Undo Last Cut", lambda: (cuts.pop() if cuts else None, redraw()), "#475569").pack(side="right")
         self.button(info, "Preview Current Look", lambda: preview_current_look(), "#0f766e").pack(side="right", padx=6)
-        preview_frame = tk.Frame(win, bg="#0b1220", height=120)
+        preview_frame = tk.Frame(win, bg="#080d18", height=205,
+                                  highlightthickness=1, highlightbackground="#334155")
         preview_frame.pack(fill="x", padx=18, pady=(4, 8))
         preview_frame.pack_propagate(False)
         preview_image_label = tk.Label(preview_frame, text="Choose a filter or adjustment, then preview your look.",
@@ -1127,6 +1129,18 @@ class App:
                 preview_image_label.config(image="", text="Preview failed: " + str(exc))
                 preview_image_label.image = None
 
+        preview_schedule = {"after_id": None}
+        def schedule_preview(*_args):
+            if not win.winfo_exists():
+                return
+            pending = preview_schedule.get("after_id")
+            if pending:
+                try:
+                    win.after_cancel(pending)
+                except Exception:
+                    pass
+            preview_schedule["after_id"] = win.after(260, preview_current_look)
+
         tk.Label(win, text="CREATOR TOOLS", bg="#1f2937", fg="#cbd5e1",
                  font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=18, pady=(12, 5))
         notebook = ttk.Notebook(win)
@@ -1176,12 +1190,13 @@ class App:
         thumbnail_state = {"token": 0}
         def choose_filter(name):
             effect.set(name)
-            preview_filter_name.config(text="Selected filter: " + name)
+            preview_filter_name.config(text="Selected filter: " + name + " • preview updating")
             for child in filter_cards.winfo_children():
                 if getattr(child, "_filter_name", None) == name:
-                    child.configure(bg="#2563eb")
+                    child.configure(bg="#0e7490")
                 else:
-                    child.configure(bg="#344765")
+                    child.configure(bg="#26364d")
+            schedule_preview()
         def apply_filter_thumbnail(name, path, token):
             if token != thumbnail_state["token"] or not win.winfo_exists():
                 return
@@ -1281,6 +1296,11 @@ class App:
             ("sharpen", "Sharpen", 0, 2), ("fade", "Fade", 0, 1),
             ("vignette", "Vignette", 0, 1), ("blur", "Blur", 0, 10)
         ]
+        for variable in adjustment_vars.values():
+            variable.trace_add("write", schedule_preview)
+        for variable in (rotation_var, flip_h_var, flip_v_var, video_fade_in,
+                         video_fade_out, speed_var, canvas_mode_var):
+            variable.trace_add("write", schedule_preview)
         for index, (key, label, low, high) in enumerate(slider_specs):
             row, col = divmod(index, 2)
             cell = tk.Frame(adjust_tab, bg="#172235")
